@@ -1,15 +1,23 @@
-import aiosqlite
+import asyncpg
 import os
 
-DB_PATH = os.getenv("DB_PATH", "bookings.db")
+_pool = None
+
+
+async def get_pool():
+    global _pool
+    if _pool is None:
+        _pool = await asyncpg.create_pool(os.getenv("DATABASE_URL"))
+    return _pool
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS bookings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT,
                 table_name TEXT,
                 date TEXT,
                 time TEXT,
@@ -21,65 +29,59 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        await db.commit()
 
 
 async def save_booking(user_id, table_name, date, time, guests, name, phone, note):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
             """INSERT INTO bookings
                (user_id, table_name, date, time, guests, name, phone, note)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, table_name, date, time, guests, name, phone, note)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               RETURNING id""",
+            user_id, table_name, date, time, guests, name, phone, note
         )
-        await db.commit()
-        return cursor.lastrowid
+        return row['id']
 
 
 async def get_booking(booking_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM bookings WHERE id = ?", (booking_id,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM bookings WHERE id = $1", booking_id
+        )
+        return dict(row) if row else None
 
 
 async def update_status(booking_id, status):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE bookings SET status = ? WHERE id = ?",
-            (status, booking_id)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE bookings SET status = $1 WHERE id = $2",
+            status, booking_id
         )
-        await db.commit()
+
+
+async def get_booked_slots(date, table_name):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT time FROM bookings
+               WHERE date = $1 AND table_name = $2 AND status != 'cancelled'""",
+            date, table_name
+        )
+        return [r['time'] for r in rows]
 
 
 async def get_all_bookings(date=None):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         if date:
-            async with db.execute(
-                "SELECT * FROM bookings WHERE date = ? ORDER BY time",
-                (date,)
-            ) as cursor:
-                rows = await cursor.fetchall()
+            rows = await conn.fetch(
+                "SELECT * FROM bookings WHERE date = $1 ORDER BY time", date
+            )
         else:
-            async with db.execute(
+            rows = await conn.fetch(
                 "SELECT * FROM bookings ORDER BY date, time"
-            ) as cursor:
-                rows = await cursor.fetchall()
-        return [dict(r) for r in rows]
-
-
-async def get_booked_slots(date):
-    """Повертає зайняті слоти для конкретної дати."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            """SELECT table_name, time FROM bookings
-               WHERE date = ? AND status != 'cancelled'""",
-            (date,)
-        ) as cursor:
-            rows = await cursor.fetchall()
+            )
         return [dict(r) for r in rows]
