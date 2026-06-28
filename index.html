@@ -285,6 +285,78 @@ html, body {
   margin: 20px 0;
 }
 
+.phone-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 10px;
+  overflow: visible;
+}
+.phone-wrap:focus-within { border-color: var(--accent); }
+.phone-country {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 13px 10px 13px 14px;
+  cursor: pointer;
+  border-right: 1px solid #222;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+.phone-country:active { background: #1a1a1a; }
+#country-code { font-size: 14px; color: var(--text); }
+.phone-arrow { font-size: 10px; color: var(--text2); }
+.phone-wrap input[type=tel] {
+  flex: 1;
+  padding: 13px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  width: 100%;
+}
+.country-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.country-menu.open { display: block; }
+.country-search-wrap { padding: 10px; border-bottom: 1px solid #222; }
+.country-search-wrap input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.country-list { max-height: 200px; overflow-y: auto; }
+.country-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+.country-item:hover { background: #222; }
+.country-item .c-code { color: var(--text2); margin-left: auto; font-size: 12px; }
+
 .btn-confirm {
   width: 100%;
   padding: 16px;
@@ -496,7 +568,20 @@ html, body {
     </div>
     <div class="field">
       <label>Телефон</label>
-      <input type="tel" id="f-phone" value="+380" placeholder="+380 XX XXX XX XX" oninput="checkForm()">
+      <div class="phone-wrap">
+        <div class="phone-country" id="country-btn" onclick="toggleCountryMenu()">
+          <span id="country-flag">🇺🇦</span>
+          <span id="country-code">+380</span>
+          <span class="phone-arrow">▾</span>
+        </div>
+        <input type="tel" id="f-phone" placeholder="XX XXX XX XX" oninput="checkForm()">
+        <div class="country-menu" id="country-menu">
+          <div class="country-search-wrap">
+            <input type="text" id="country-search" placeholder="Пошук..." oninput="filterCountries()">
+          </div>
+          <div class="country-list" id="country-list"></div>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Побажання</label>
@@ -592,6 +677,71 @@ function changeGuests(d) {
   document.getElementById('g-val').textContent = state.guests;
 }
 
+// Country picker
+const COUNTRIES = [
+  { name: 'Україна', flag: '🇺🇦', code: '+380' },
+  { name: 'Польща', flag: '🇵🇱', code: '+48' },
+  { name: 'Німеччина', flag: '🇩🇪', code: '+49' },
+  { name: 'США', flag: '🇺🇸', code: '+1' },
+  { name: 'Велика Британія', flag: '🇬🇧', code: '+44' },
+  { name: 'Франція', flag: '🇫🇷', code: '+33' },
+  { name: 'Італія', flag: '🇮🇹', code: '+39' },
+  { name: 'Іспанія', flag: '🇪🇸', code: '+34' },
+  { name: 'Чехія', flag: '🇨🇿', code: '+420' },
+  { name: 'Австрія', flag: '🇦🇹', code: '+43' },
+  { name: 'Румунія', flag: '🇷🇴', code: '+40' },
+  { name: 'Угорщина', flag: '🇭🇺', code: '+36' },
+  { name: 'Словаччина', flag: '🇸🇰', code: '+421' },
+  { name: 'Молдова', flag: '🇲🇩', code: '+373' },
+  { name: 'Туреччина', flag: '🇹🇷', code: '+90' },
+  { name: 'ОАЕ', flag: '🇦🇪', code: '+971' },
+  { name: 'Ізраїль', flag: '🇮🇱', code: '+972' },
+  { name: 'Австралія', flag: '🇦🇺', code: '+61' },
+  { name: 'Нідерланди', flag: '🇳🇱', code: '+31' },
+];
+
+let selectedCountry = COUNTRIES[0];
+
+function renderCountries(list) {
+  const el = document.getElementById('country-list');
+  el.innerHTML = list.map((c, i) => `
+    <div class="country-item" onclick="selectCountryItem(${COUNTRIES.indexOf(c)})">
+      <span>${c.flag}</span><span>${c.name}</span><span class="c-code">${c.code}</span>
+    </div>
+  `).join('');
+}
+
+function filterCountries() {
+  const q = document.getElementById('country-search').value.toLowerCase();
+  renderCountries(COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q)));
+}
+
+function toggleCountryMenu() {
+  const menu = document.getElementById('country-menu');
+  menu.classList.toggle('open');
+  if (menu.classList.contains('open')) {
+    renderCountries(COUNTRIES);
+    document.getElementById('country-search').value = '';
+    setTimeout(() => document.getElementById('country-search').focus(), 50);
+  }
+}
+
+function selectCountryItem(idx) {
+  selectedCountry = COUNTRIES[idx];
+  document.getElementById('country-flag').textContent = selectedCountry.flag;
+  document.getElementById('country-code').textContent = selectedCountry.code;
+  document.getElementById('country-menu').classList.remove('open');
+  document.getElementById('f-phone').focus();
+  checkForm();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.phone-wrap')) {
+    const menu = document.getElementById('country-menu');
+    if (menu) menu.classList.remove('open');
+  }
+});
+
 function checkForm() {
   const ok = state.time && state.date &&
     document.getElementById('f-name').value.trim() &&
@@ -601,7 +751,7 @@ function checkForm() {
 
 function submitBooking() {
   const name = document.getElementById('f-name').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
+  const phone = selectedCountry.code + document.getElementById('f-phone').value.trim();
   const note = document.getElementById('f-note').value.trim();
 
   const data = {
