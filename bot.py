@@ -1,10 +1,11 @@
-import asyncio
+
+  import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.types import (
-    InlineKeyboardMarkup, InlineKeyboardButton,
-    WebAppInfo, Message
+    InlineKeyboardButton, ReplyKeyboardMarkup,
+    KeyboardButton, WebAppInfo, Message
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import json
@@ -19,15 +20,17 @@ dp = Dispatcher()
 @dp.message(CommandStart())
 async def start(message: Message):
     await db.init_db()
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(
-        text="🪑 Забронювати столик",
-        web_app=WebAppInfo(url=WEBAPP_URL)
-    ))
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(
+            text="🪑 Забронювати столик",
+            web_app=WebAppInfo(url=WEBAPP_URL)
+        )]],
+        resize_keyboard=True
+    )
     await message.answer(
         "👋 Вітаємо в нашому ресторані!\n\n"
         "Натисніть кнопку нижче, щоб обрати столик і зробити бронювання.",
-        reply_markup=builder.as_markup()
+        reply_markup=keyboard
     )
 
 
@@ -54,7 +57,6 @@ async def handle_webapp_data(message: Message):
             note=note
         )
 
-        # Підтвердження клієнту
         client_text = (
             f"✅ *Бронювання підтверджено!*\n\n"
             f"🪑 Столик: {table_name}\n"
@@ -68,7 +70,6 @@ async def handle_webapp_data(message: Message):
         )
         await message.answer(client_text, parse_mode="Markdown")
 
-        # Повідомлення адміну
         if ADMIN_ID:
             admin_text = (
                 f"🔔 *Нове бронювання #{booking_id}*\n\n"
@@ -107,7 +108,6 @@ async def confirm_booking(callback: types.CallbackQuery):
             callback.message.text + "\n\n✅ *Підтверджено*",
             parse_mode="Markdown"
         )
-        # Повідомити клієнта
         try:
             await bot.send_message(
                 booking["user_id"],
@@ -131,8 +131,7 @@ async def cancel_booking(callback: types.CallbackQuery):
         try:
             await bot.send_message(
                 booking["user_id"],
-                f"❌ На жаль, ваше бронювання #{booking_id} скасовано. "
-                f"Зателефонуйте нам для уточнення деталей."
+                f"❌ На жаль, ваше бронювання #{booking_id} скасовано."
             )
         except:
             pass
@@ -142,6 +141,9 @@ async def cancel_booking(callback: types.CallbackQuery):
 async def main():
     await db.init_db()
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)    
+    await dp.start_polling(bot)
+
+
 if __name__ == "__main__":
     asyncio.run(main())
+    
