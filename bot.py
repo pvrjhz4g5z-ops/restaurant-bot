@@ -7,6 +7,7 @@ from aiogram.types import (
     KeyboardButton, WebAppInfo, Message
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import web
 import json
 import database as db
 from config import BOT_TOKEN, ADMIN_ID, WEBAPP_URL
@@ -137,12 +138,43 @@ async def cancel_booking(callback: types.CallbackQuery):
     await callback.answer("Скасовано!")
 
 
+# ── HTTP API ──
+async def api_tables(request):
+    date = request.rel_url.query.get('date', '')
+    try:
+        bookings = await db.get_all_bookings(date)
+        booked_tables = list(set(b['table_name'] for b in bookings if b['status'] != 'cancelled'))
+        return web.json_response({"booked_tables": booked_tables}, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return web.json_response({"booked_tables": [], "error": str(e)})
+
+
+async def api_slots(request):
+    date = request.rel_url.query.get('date', '')
+    table = request.rel_url.query.get('table', '')
+    try:
+        taken = await db.get_booked_slots(date, table)
+        return web.json_response({"taken": taken}, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        return web.json_response({"taken": [], "error": str(e)})
+
+
 async def main():
     await db.init_db()
     await bot.delete_webhook(drop_pending_updates=True)
+
+    # Start HTTP server
+    app = web.Application()
+    app.router.add_get('/api/tables', api_tables)
+    app.router.add_get('/api/slots', api_slots)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 8080)
+    await site.start()
+    logging.info("API server started on port 8080")
+
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
