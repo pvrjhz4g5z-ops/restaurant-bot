@@ -5,35 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Бронювання</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --bg: #ffffff;
-  --bg2: #fdf7f2;
-  --text: #1a0e00;
-  --text2: #8a6040;
-  --orange: #e07020;
-  --orange-dark: #b85510;
-  --orange-light: #fff3e6;
-  --border: #f0d0b0;
+  --bg2: #f7f6f4;
+  --ink: #1c1a17;
+  --ink2: #6f6a63;
+  --ink3: #a39d94;
+  --line: #ece9e4;
+  --line2: #ddd8d0;
+  --accent: #e07020;
+  --accent-dark: #b85510;
+  --accent-soft: #fff3e6;
+  --free: #4a8c45;
+  --free-soft: #f0f6ef;
+  --free-line: #bcd9b8;
+  --busy: #b8463a;
+  --busy-soft: #fbeeed;
+  --busy-line: #e6c0bc;
+  --r: 16px;
+  --r-sm: 11px;
+  --shadow: 0 1px 2px rgba(28,26,23,0.04), 0 8px 24px rgba(28,26,23,0.06);
+  --shadow-lg: 0 2px 8px rgba(28,26,23,0.06), 0 20px 48px rgba(28,26,23,0.12);
 }
 
 html, body {
   height: 100%;
-  background: #ffffff;
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* ─────── LANDING ─────── */
 #landing {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 24px;
-  background: #ffffff;
+  padding: 20px;
+  background: var(--bg);
 }
 
 .landing-card {
@@ -49,147 +70,306 @@ html, body {
   padding: 40px 32px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-lg);
 }
-.landing-card::before {
+.landing-card::after {
   content: '';
   position: absolute; inset: 0;
   background: radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.1) 0%, transparent 65%);
   pointer-events: none;
 }
-.landing-logo { position: absolute; top: 40px; left: 0; right: 0; text-align: center; }
+.landing-logo { position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 1; }
 .landing-logo-mark { width: 36px; height: 1px; background: rgba(255,255,255,0.4); margin: 0 auto 16px; }
 .landing-name { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
-.landing-tagline { font-size: 27px; font-weight: 300; letter-spacing: -0.02em; color: #fff; text-align: center; line-height: 1.3; margin-bottom: 36px; }
-.btn-book { width: 100%; padding: 15px; background: #fff; color: var(--orange-dark); border: none; border-radius: 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s; }
-.btn-book:active { opacity: 0.85; }
+.landing-tagline {
+  position: relative; z-index: 1;
+  font-size: 27px; font-weight: 300;
+  letter-spacing: -0.02em; color: #fff;
+  text-align: center; line-height: 1.3; margin-bottom: 36px;
+}
 
-#floorpage { display: none; min-height: 100vh; background: #ffffff; }
+.btn-book {
+  position: relative; z-index: 1;
+  width: 100%;
+  padding: 16px;
+  background: #fff;
+  color: var(--accent-dark);
+  border: none;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.btn-book:active { transform: scale(0.985); }
 
-.floor-header { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border); background: #ffffff; position: sticky; top: 0; z-index: 5; }
-.back-btn { background: none; border: none; color: var(--orange); font-size: 13px; cursor: pointer; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
-.floor-title { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text2); }
+/* ─────── FLOOR ─────── */
+#floorpage { display: none; min-height: 100vh; background: var(--bg); }
 
-.floor-wrap { padding: 12px; }
+.floor-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 5;
+}
+.back-btn {
+  background: none; border: none;
+  color: var(--ink2); font-size: 14px;
+  cursor: pointer; font-weight: 500;
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 0;
+}
+.back-btn svg { width: 15px; height: 15px; }
+.floor-title {
+  font-family: 'Fraunces', serif;
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+}
+.floor-header .spacer { width: 54px; }
 
 .tap-hint {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 4px 12px 12px;
-  padding: 11px 16px;
-  background: var(--orange-light);
-  border: 1.5px solid var(--orange);
-  border-radius: 12px;
+  gap: 9px;
+  margin: 16px 16px 4px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
   font-size: 13px;
-  color: var(--orange-dark);
+  color: var(--accent-dark);
   font-weight: 500;
 }
-.tap-hint .hint-finger {
-  font-size: 16px;
-  animation: tapBounce 1.4s ease-in-out infinite;
-}
-@keyframes tapBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
+.tap-hint svg { width: 17px; height: 17px; flex-shrink: 0; animation: nudge 1.8s ease-in-out infinite; }
+@keyframes nudge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
-.tbl.pulse .tbl-rect {
-  animation: tblPulse 1.6s ease-in-out infinite;
-}
-@keyframes tblPulse {
-  0%, 100% { stroke-width: 1.5; fill: #edf5ec; }
-  50% { stroke-width: 3; fill: #d4ecd0; }
-}
+.floor-wrap { padding: 12px 16px; }
 .floor-svg { width: 100%; height: auto; display: block; }
 
-.legend { display: flex; gap: 16px; padding: 0 12px 16px; justify-content: center; }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
-.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+.legend {
+  display: flex; gap: 20px;
+  padding: 4px 16px 20px;
+  justify-content: center;
+}
+.legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink2); }
+.legend-dot { width: 11px; height: 11px; border-radius: 4px; }
 
-#modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(26,14,0,0.35); backdrop-filter: blur(4px); align-items: flex-end; justify-content: center; }
+/* tables */
+.tbl, .seat { cursor: pointer; }
+.tbl .tbl-rect { fill: var(--free-soft); stroke: var(--free-line); stroke-width: 1.25; transition: all 0.18s; }
+.tbl .tbl-num { fill: var(--free); font-weight: 400; letter-spacing: 0.02em; }
+.tbl .tbl-action { fill: var(--free); font-weight: 500; }
+.tbl .tbl-seats { fill: #8ab586; }
+.tbl:active .tbl-rect { transform-box: fill-box; transform-origin: center; transform: scale(0.97); }
+.tbl.booked { cursor: not-allowed; }
+.tbl.booked .tbl-rect { fill: var(--busy-soft); stroke: var(--busy-line); }
+.tbl.booked .tbl-num, .tbl.booked .tbl-action { fill: var(--busy); }
+.tbl.booked .tbl-seats { fill: #d09a95; }
+.tbl.pulse .tbl-rect { animation: pulse 1.7s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { stroke-width: 1.25; } 50% { stroke-width: 2.75; stroke: var(--free); } }
+
+.seat .seat-c { fill: var(--free-soft); stroke: var(--free-line); stroke-width: 1.25; transition: all 0.18s; }
+.seat .seat-n { fill: var(--free); font-weight: 400; }
+.seat.booked { cursor: not-allowed; }
+.seat.booked .seat-c { fill: var(--busy-soft); stroke: var(--busy-line); }
+.seat.booked .seat-n { fill: var(--busy); }
+
+/* ─────── MODAL ─────── */
+#modal {
+  display: none;
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(28,26,23,0.45);
+  backdrop-filter: blur(3px);
+  align-items: flex-end; justify-content: center;
+}
 #modal.open { display: flex; }
 
-.modal-sheet { width: 100%; max-width: 480px; background: #ffffff; border-radius: 24px 24px 0 0; border-top: 2px solid var(--orange); max-height: 92vh; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; position: relative; padding: 12px 24px 50vh; }
+.modal-sheet {
+  width: 100%; max-width: 480px;
+  background: var(--bg);
+  border-radius: 26px 26px 0 0;
+  max-height: 94vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  position: relative;
+  padding: 14px 24px 50vh;
+  box-shadow: 0 -8px 40px rgba(28,26,23,0.16);
+  animation: sheetUp 0.32s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
-.modal-close { position: absolute; top: 14px; right: 20px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-.modal-close:hover { background: var(--orange-light); color: var(--orange); border-color: var(--orange); }
+.modal-handle { width: 38px; height: 4px; background: var(--line2); border-radius: 99px; margin: 0 auto 22px; }
 
-.modal-title { font-size: 17px; font-weight: 600; margin-bottom: 3px; color: var(--orange-dark); }
-.modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 22px; }
+.modal-close {
+  position: absolute; top: 16px; right: 20px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  color: var(--ink2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.16s;
+}
+.modal-close svg { width: 15px; height: 15px; }
+.modal-close:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
-.field { margin-bottom: 13px; }
-.field label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); margin-bottom: 7px; font-weight: 500; }
-.field input { width: 100%; padding: 12px 14px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; transition: border-color 0.2s; }
-.field input:focus { border-color: var(--orange); }
+.modal-eyebrow { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+.modal-title { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 400; color: var(--ink); margin-bottom: 3px; }
+.modal-sub { font-size: 13px; color: var(--ink2); margin-bottom: 26px; }
 
-.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 18px; }
-.time-btn { padding: 9px 4px; text-align: center; font-size: 12px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; transition: all 0.15s; }
-.time-btn.sel { background: var(--orange-light); border-color: var(--orange); color: var(--orange-dark); font-weight: 600; }
-.time-btn.taken { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; background: #fdecea; border-color: #c0392b; color: #c0392b; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; color: var(--ink2); margin-bottom: 8px; font-weight: 500; }
+.field input {
+  width: 100%; padding: 14px 15px;
+  background: var(--bg2);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: 15px; outline: none;
+  transition: all 0.18s;
+}
+.field input::placeholder { color: var(--ink3); }
+.field input:focus { background: #fff; border-color: var(--accent); }
 
-.guests-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
-.guests-row label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); flex: 1; font-weight: 500; }
-.g-btn { width: 32px; height: 32px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 50%; color: var(--orange); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.g-val { font-size: 16px; font-weight: 600; min-width: 20px; text-align: center; color: var(--orange-dark); }
+.section-label { font-size: 12px; color: var(--ink2); margin-bottom: 10px; font-weight: 500; }
 
-.divider { height: 1px; background: var(--border); margin: 18px 0; }
+.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 22px; }
+.time-btn {
+  padding: 11px 4px; text-align: center;
+  font-size: 13px; font-weight: 500;
+  background: var(--bg2);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--ink); cursor: pointer;
+  transition: all 0.16s;
+}
+.time-btn:active { transform: scale(0.96); }
+.time-btn.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+.time-btn.taken {
+  opacity: 0.4; cursor: not-allowed;
+  text-decoration: line-through;
+  background: var(--busy-soft); color: var(--busy);
+}
 
-.phone-wrap { position: relative; display: flex; align-items: center; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px; overflow: visible; }
-.phone-wrap:focus-within { border-color: var(--orange); }
-.phone-country { display: flex; align-items: center; gap: 4px; padding: 12px 10px 12px 14px; cursor: pointer; border-right: 1.5px solid var(--border); white-space: nowrap; user-select: none; flex-shrink: 0; }
-#country-code { font-size: 14px; color: var(--text); }
-.phone-arrow { font-size: 10px; color: var(--text2); }
-.phone-wrap input[type=tel] { flex: 1; padding: 12px 14px; background: transparent; border: none; color: var(--text); font-size: 15px; outline: none; width: 100%; }
-.country-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1.5px solid var(--border); border-radius: 10px; z-index: 200; overflow: hidden; box-shadow: 0 8px 24px rgba(26,14,0,0.12); }
+.guests-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.guests-row label { font-size: 12px; color: var(--ink2); flex: 1; font-weight: 500; }
+.g-btn {
+  width: 36px; height: 36px;
+  background: var(--bg2);
+  border: 1.5px solid var(--line);
+  border-radius: 50%; color: var(--ink);
+  font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.16s;
+}
+.g-btn:active { transform: scale(0.92); }
+.g-val { font-size: 17px; font-weight: 600; min-width: 24px; text-align: center; }
+
+.divider { height: 1px; background: var(--line); margin: 22px 0; }
+
+.phone-wrap {
+  position: relative; display: flex; align-items: center;
+  background: var(--bg2);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-sm); overflow: visible;
+  transition: all 0.18s;
+}
+.phone-wrap:focus-within { background: #fff; border-color: var(--accent); }
+.phone-country {
+  display: flex; align-items: center; gap: 5px;
+  padding: 14px 11px 14px 15px;
+  cursor: pointer;
+  border-right: 1.5px solid var(--line);
+  white-space: nowrap; user-select: none; flex-shrink: 0;
+}
+#country-code { font-size: 14px; }
+.phone-arrow { width: 9px; height: 9px; color: var(--ink3); }
+.phone-wrap input[type=tel] {
+  flex: 1; padding: 14px 15px;
+  background: transparent; border: none;
+  color: var(--ink); font-size: 15px; outline: none; width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+.country-menu {
+  display: none;
+  position: absolute; top: calc(100% + 8px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px; z-index: 200; overflow: hidden;
+  box-shadow: var(--shadow);
+}
 .country-menu.open { display: block; }
-.country-search-wrap { padding: 10px; border-bottom: 1px solid var(--border); }
-.country-search-wrap input { width: 100%; padding: 8px 12px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
-.country-list { max-height: 200px; overflow-y: auto; }
-.country-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; color: var(--text); }
-.country-item:hover { background: var(--orange-light); }
-.country-item .c-code { color: var(--text2); margin-left: auto; font-size: 12px; }
+.country-search-wrap { padding: 11px; border-bottom: 1px solid var(--line); }
+.country-search-wrap input {
+  width: 100%; padding: 9px 12px;
+  background: var(--bg2);
+  border: 1px solid transparent;
+  border-radius: 9px; color: var(--ink); font-size: 13px; outline: none;
+  font-family: 'Inter', sans-serif;
+}
+.country-list { max-height: 210px; overflow-y: auto; }
+.country-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 15px; cursor: pointer;
+  font-size: 14px; color: var(--ink);
+}
+.country-item:hover { background: var(--accent-soft); }
+.country-item .c-code { color: var(--ink2); margin-left: auto; font-size: 13px; }
 
-.btn-confirm { width: 100%; padding: 15px; background: var(--orange); color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s; margin-top: 8px; }
-.btn-confirm:disabled { opacity: 0.3; cursor: not-allowed; }
-.btn-confirm:active:not(:disabled) { opacity: 0.85; }
+.btn-confirm {
+  width: 100%; padding: 17px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; margin-top: 6px;
+}
+.btn-confirm:disabled { opacity: 0.32; cursor: not-allowed; }
+.btn-confirm:active:not(:disabled) { transform: scale(0.985); background: var(--accent-dark); }
 
-#successpage { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; background: #ffffff; }
+/* ─────── SUCCESS ─────── */
+#successpage { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
 #successpage.open { display: flex; }
-.success-card { text-align: center; max-width: 300px; }
-.success-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--orange-light); margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
-.success-title { font-size: 22px; font-weight: 600; color: var(--orange-dark); margin-bottom: 8px; }
-.success-sub { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 32px; }
-.success-detail { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.success-detail span:first-child { color: var(--text2); }
-.success-detail span:last-child { font-weight: 500; color: var(--orange-dark); }
-
-/* Столики */
-.tbl { cursor: pointer; }
-.tbl .tbl-rect { fill: #edf5ec; stroke: #5a9e52; stroke-width: 1.5; transition: all 0.15s; }
-.tbl .tbl-num { fill: #3a7a34; }
-.tbl .tbl-action { fill: #3a7a34; }
-.tbl .tbl-seats { fill: #7ab874; }
-.tbl:active .tbl-rect { opacity: 0.8; }
-.tbl.booked { cursor: not-allowed; }
-.tbl.booked .tbl-rect { fill: #fdecea; stroke: #c0392b; }
-.tbl.booked .tbl-num { fill: #c0392b; }
-.tbl.booked .tbl-action { fill: #c0392b; }
-.tbl.booked .tbl-seats { fill: #e0a0a0; }
-
-/* Barні крісла — клікабельні */
-.bar-stool { cursor: pointer; }
-.bar-stool .stool-circle { fill: #d4ecd0; stroke: #5a9e52; stroke-width: 1.5; transition: all 0.15s; }
-.bar-stool .stool-num { fill: #3a7a34; }
-.bar-stool:active .stool-circle { opacity: 0.8; }
-.bar-stool.booked { cursor: not-allowed; }
-.bar-stool.booked .stool-circle { fill: #fadbd8; stroke: #c0392b; }
-.bar-stool.booked .stool-num { fill: #c0392b; }
+.success-card { text-align: center; max-width: 320px; width: 100%; }
+.success-mark {
+  width: 60px; height: 60px; margin: 0 auto 26px;
+  border-radius: 50%;
+  background: var(--free-soft);
+  border: 1.5px solid var(--free-line);
+  display: flex; align-items: center; justify-content: center;
+}
+.success-mark svg { width: 26px; height: 26px; color: var(--free); }
+.success-title { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 400; color: var(--ink); margin-bottom: 10px; line-height: 1.1; }
+.success-sub { font-size: 14px; color: var(--ink2); line-height: 1.6; margin-bottom: 30px; }
+.success-card-detail {
+  background: var(--bg2);
+  border-radius: var(--r);
+  padding: 6px 18px;
+  text-align: left;
+}
+.success-detail {
+  display: flex; justify-content: space-between;
+  font-size: 14px; padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.success-detail:last-child { border-bottom: none; }
+.success-detail span:first-child { color: var(--ink2); }
+.success-detail span:last-child { font-weight: 500; }
 </style>
 </head>
 <body>
 
+<!-- LANDING -->
 <div id="landing">
   <div class="landing-card">
     <div class="landing-logo">
@@ -201,157 +381,166 @@ html, body {
   </div>
 </div>
 
+<!-- FLOOR -->
 <div id="floorpage">
   <div class="floor-header">
-    <button class="back-btn" onclick="showLanding()">← Назад</button>
-    <span class="floor-title">Оберіть столик</span>
-    <span style="width:60px"></span>
+    <button class="back-btn" onclick="showLanding()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      Назад
+    </button>
+    <span class="floor-title">Зал</span>
+    <span class="spacer"></span>
   </div>
+
   <div class="tap-hint">
-    <span class="hint-finger">👆</span>
-    <span>Натисніть на вільний столик</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11.5V6a2 2 0 0 1 4 0v5.5M13 8.5a2 2 0 0 1 4 0V13M9 9.5a2 2 0 0 0-4 0v3.5a7 7 0 0 0 7 7h1a6 6 0 0 0 6-6V10a2 2 0 0 0-4 0"/></svg>
+    Торкніться вільного столика
   </div>
+
   <div class="floor-wrap">
     <svg class="floor-svg" viewBox="0 0 340 520" xmlns="http://www.w3.org/2000/svg">
-      <!-- Room outline — orange -->
-      <rect x="8" y="8" width="324" height="504" rx="12" fill="#ffffff" stroke="#e07020" stroke-width="2"/>
-      <rect x="130" y="500" width="80" height="8" rx="4" fill="#e07020"/>
-      <text x="170" y="507" text-anchor="middle" font-size="7" fill="#ffffff" letter-spacing="0.1em">ВХІД</text>
+      <rect x="8" y="8" width="324" height="504" rx="16" fill="#ffffff" stroke="#ece9e4" stroke-width="1.5"/>
+      <rect x="138" y="501" width="64" height="7" rx="3.5" fill="#ddd8d0"/>
+      <text x="170" y="497" text-anchor="middle" font-size="7" fill="#a39d94" letter-spacing="0.18em" font-family="Inter">ВХІД</text>
 
-      <!-- Bar — orange -->
-      <rect x="18" y="18" width="304" height="72" rx="8" fill="#fff3e6" stroke="#e07020" stroke-width="1.5"/>
-      <text x="90" y="48" text-anchor="middle" font-size="8" fill="#b85510" letter-spacing="0.15em">БАР</text>
-      <g id="b1" class="bar-stool" data-id="b1" data-name="Бар 1" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="130" cy="52" r="11" class="stool-circle"/>
-        <text x="130" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">1</text>
+      <!-- BAR -->
+      <rect x="20" y="20" width="300" height="70" rx="12" fill="#f7f6f4" stroke="#ece9e4" stroke-width="1"/>
+      <text x="88" y="50" text-anchor="middle" font-size="9" fill="#a39d94" letter-spacing="0.2em" font-family="Inter" font-weight="500">БАР</text>
+      <g class="seat" data-id="b1" data-name="Бар 1" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="138" cy="55" r="11" class="seat-c"/><text x="138" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">1</text>
       </g>
-      <g id="b2" class="bar-stool" data-id="b2" data-name="Бар 2" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="158" cy="52" r="11" class="stool-circle"/>
-        <text x="158" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">2</text>
+      <g class="seat" data-id="b2" data-name="Бар 2" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="166" cy="55" r="11" class="seat-c"/><text x="166" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">2</text>
       </g>
-      <g id="b3" class="bar-stool" data-id="b3" data-name="Бар 3" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="186" cy="52" r="11" class="stool-circle"/>
-        <text x="186" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">3</text>
+      <g class="seat" data-id="b3" data-name="Бар 3" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="194" cy="55" r="11" class="seat-c"/><text x="194" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">3</text>
       </g>
-      <g id="b4" class="bar-stool" data-id="b4" data-name="Бар 4" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="214" cy="52" r="11" class="stool-circle"/>
-        <text x="214" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">4</text>
+      <g class="seat" data-id="b4" data-name="Бар 4" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="222" cy="55" r="11" class="seat-c"/><text x="222" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">4</text>
       </g>
-      <g id="b5" class="bar-stool" data-id="b5" data-name="Бар 5" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="242" cy="52" r="11" class="stool-circle"/>
-        <text x="242" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">5</text>
+      <g class="seat" data-id="b5" data-name="Бар 5" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="250" cy="55" r="11" class="seat-c"/><text x="250" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">5</text>
       </g>
 
-      <g id="t1" class="tbl" data-id="1" data-name="Стіл 1" data-seats="2" onclick="onTableClick(this)">
-        <rect x="20" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="54" y="141" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">1</text>
-        <text x="54" y="155" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="54" y="167" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
+      <g class="tbl" data-id="1" data-name="Стіл 1" data-seats="2" onclick="onTableClick(this)">
+        <rect x="22" y="116" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="55" y="144" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">1</text>
+        <text x="55" y="157" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="55" y="168" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
       </g>
-      <g id="t2" class="tbl" data-id="2" data-name="Стіл 2" data-seats="2" onclick="onTableClick(this)">
-        <rect x="136" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="170" y="141" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">2</text>
-        <text x="170" y="155" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="170" y="167" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
+      <g class="tbl" data-id="2" data-name="Стіл 2" data-seats="2" onclick="onTableClick(this)">
+        <rect x="137" y="116" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="170" y="144" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">2</text>
+        <text x="170" y="157" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="170" y="168" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
       </g>
-      <g id="t3" class="tbl" data-id="3" data-name="Стіл 3" data-seats="2" onclick="onTableClick(this)">
-        <rect x="252" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="286" y="141" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">3</text>
-        <text x="286" y="155" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="286" y="167" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
+      <g class="tbl" data-id="3" data-name="Стіл 3" data-seats="2" onclick="onTableClick(this)">
+        <rect x="252" y="116" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="285" y="144" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">3</text>
+        <text x="285" y="157" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="285" y="168" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
       </g>
-      <g id="t4" class="tbl" data-id="4" data-name="Стіл 4" data-seats="4" onclick="onTableClick(this)">
-        <rect x="20" y="214" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="54" y="243" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">4</text>
-        <text x="54" y="257" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="54" y="269" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
+      <g class="tbl" data-id="4" data-name="Стіл 4" data-seats="4" onclick="onTableClick(this)">
+        <rect x="22" y="216" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="55" y="244" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">4</text>
+        <text x="55" y="257" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="55" y="268" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
       </g>
-      <g id="t5" class="tbl" data-id="5" data-name="Стіл 5" data-seats="4" onclick="onTableClick(this)">
-        <rect x="136" y="214" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="170" y="243" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">5</text>
-        <text x="170" y="257" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="170" y="269" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
+      <g class="tbl" data-id="5" data-name="Стіл 5" data-seats="4" onclick="onTableClick(this)">
+        <rect x="137" y="216" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="170" y="244" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">5</text>
+        <text x="170" y="257" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="170" y="268" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
       </g>
-      <g id="t6" class="tbl" data-id="6" data-name="Стіл 6" data-seats="4" onclick="onTableClick(this)">
-        <rect x="252" y="214" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="286" y="243" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">6</text>
-        <text x="286" y="257" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="286" y="269" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
+      <g class="tbl" data-id="6" data-name="Стіл 6" data-seats="4" onclick="onTableClick(this)">
+        <rect x="252" y="216" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="285" y="244" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">6</text>
+        <text x="285" y="257" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="285" y="268" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
       </g>
-      <g id="t7" class="tbl" data-id="7" data-name="Стіл 7" data-seats="2" onclick="onTableClick(this)">
-        <rect x="20" y="316" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="54" y="345" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">7</text>
-        <text x="54" y="359" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="54" y="371" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
+      <g class="tbl" data-id="7" data-name="Стіл 7" data-seats="2" onclick="onTableClick(this)">
+        <rect x="22" y="316" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="55" y="344" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">7</text>
+        <text x="55" y="357" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="55" y="368" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
       </g>
-      <g id="t8" class="tbl" data-id="8" data-name="Стіл 8" data-seats="4" onclick="onTableClick(this)">
-        <rect x="136" y="316" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="170" y="345" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">8</text>
-        <text x="170" y="359" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="170" y="371" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
+      <g class="tbl" data-id="8" data-name="Стіл 8" data-seats="4" onclick="onTableClick(this)">
+        <rect x="137" y="316" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="170" y="344" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">8</text>
+        <text x="170" y="357" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="170" y="368" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
       </g>
-      <g id="t9" class="tbl" data-id="9" data-name="Стіл 9" data-seats="2" onclick="onTableClick(this)">
-        <rect x="252" y="316" width="68" height="68" rx="6" class="tbl-rect"/>
-        <text x="286" y="345" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">9</text>
-        <text x="286" y="359" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="286" y="371" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
+      <g class="tbl" data-id="9" data-name="Стіл 9" data-seats="2" onclick="onTableClick(this)">
+        <rect x="252" y="316" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="285" y="344" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">9</text>
+        <text x="285" y="357" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="285" y="368" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
       </g>
-      <g id="t10" class="tbl" data-id="10" data-name="VIP-стіл" data-seats="6" onclick="onTableClick(this)">
-        <rect x="20" y="418" width="300" height="68" rx="6" class="tbl-rect"/>
-        <text x="170" y="447" text-anchor="middle" font-size="11" font-weight="600" class="tbl-num">VIP-стіл</text>
-        <text x="170" y="461" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
-        <text x="170" y="473" text-anchor="middle" font-size="7" class="tbl-seats">6 місць</text>
+      <g class="tbl" data-id="10" data-name="VIP-стіл" data-seats="6" onclick="onTableClick(this)">
+        <rect x="22" y="416" width="296" height="66" rx="13" class="tbl-rect"/>
+        <text x="170" y="444" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter" letter-spacing="0.05em">VIP</text>
+        <text x="170" y="457" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="170" y="468" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">6 місць</text>
       </g>
     </svg>
   </div>
   <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#edf5ec;border:1.5px solid #5a9e52"></div>Вільний</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fdecea;border:1.5px solid #c0392b"></div>Заброньований</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f0f6ef;border:1.5px solid #4a8c45"></span>Вільний</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#fbeeed;border:1.5px solid #b8463a"></span>Зайнятий</div>
   </div>
 </div>
 
+<!-- MODAL -->
 <div id="modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <button class="modal-close" onclick="closeModal()">×</button>
+    <button class="modal-close" onclick="closeModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-eyebrow">Бронювання</div>
     <div class="modal-title" id="modal-title">Стіл</div>
     <div class="modal-sub" id="modal-sub">2 місця</div>
+
     <div class="field"><label>Дата</label><input type="date" id="pick-date"></div>
     <div class="guests-row">
-      <label>Гостей</label>
+      <label>Кількість гостей</label>
       <button class="g-btn" onclick="changeGuests(-1)">−</button>
       <span class="g-val" id="g-val">2</span>
       <button class="g-btn" onclick="changeGuests(1)">+</button>
     </div>
+    <div class="section-label">Час</div>
     <div class="time-grid" id="time-grid"></div>
     <div class="divider"></div>
-    <div class="field"><label>Ім'я</label><input type="text" id="f-name" placeholder="Ваше ім'я" oninput="checkForm()"></div>
+    <div class="field"><label>Ім'я</label><input type="text" id="f-name" placeholder="Як до вас звертатися" oninput="checkForm()"></div>
     <div class="field">
       <label>Телефон</label>
       <div class="phone-wrap">
         <div class="phone-country" onclick="toggleCountryMenu()">
           <span id="country-flag">🇺🇦</span>
           <span id="country-code">+380</span>
-          <span class="phone-arrow">▾</span>
+          <svg class="phone-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </div>
         <input type="tel" id="f-phone" placeholder="50 375 76 78" oninput="formatPhone(this); checkForm()">
         <div class="country-menu" id="country-menu">
-          <div class="country-search-wrap"><input type="text" id="country-search" placeholder="Пошук..." oninput="filterCountries()"></div>
+          <div class="country-search-wrap"><input type="text" id="country-search" placeholder="Пошук країни" oninput="filterCountries()"></div>
           <div class="country-list" id="country-list"></div>
         </div>
       </div>
     </div>
-    <div class="field"><label>Побажання</label><input type="text" id="f-note" placeholder="Необов'язково"></div>
-    <button class="btn-confirm" id="btn-confirm" onclick="submitBooking()" disabled>Підтвердити</button>
+    <div class="field"><label>Побажання <span style="color:var(--ink3)">— необов'язково</span></label><input type="text" id="f-note" placeholder="Місце біля вікна, дитячий стілець…"></div>
+    <button class="btn-confirm" id="btn-confirm" onclick="submitBooking()" disabled>Забронювати</button>
   </div>
 </div>
 
+<!-- SUCCESS -->
 <div id="successpage">
   <div class="success-card">
-    <div class="success-icon">✅</div>
-    <div class="success-title">Бронювання<br>прийнято!</div>
-    <div class="success-sub">Очікуйте підтвердження<br>від ресторану</div>
-    <div id="success-details"></div>
+    <div class="success-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="success-title">Готово</div>
+    <div class="success-sub">Ми надішлемо підтвердження, щойно ресторан прийме бронювання.</div>
+    <div class="success-card-detail" id="success-details"></div>
   </div>
 </div>
 
@@ -433,23 +622,23 @@ function formatPhone(input) {
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
-// При фокусі на полі — проскролити так щоб поле було над клавіатурою
+function seatWord(n) {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'місце';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'місця';
+  return 'місць';
+}
+
 document.querySelectorAll('.modal-sheet input').forEach(inp => {
   inp.addEventListener('focus', () => {
-    setTimeout(() => {
-      inp.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 350);
+    setTimeout(() => inp.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
   });
 });
-
-// Коли клавіатура з'являється (зменшується viewport) — тримати активне поле видимим
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => {
-    const active = document.activeElement;
-    if (active && active.tagName === 'INPUT' && active.closest('.modal-sheet')) {
-      setTimeout(() => {
-        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+    const a = document.activeElement;
+    if (a && a.tagName === 'INPUT' && a.closest('.modal-sheet')) {
+      setTimeout(() => a.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
     }
   });
 }
@@ -464,13 +653,13 @@ async function loadTableStatuses(date) {
       const name = g.dataset.name;
       if (booked.includes(name)) {
         g.classList.add('booked');
-        g.querySelector('.tbl-action').textContent = 'Заброньовано';
+        g.querySelector('.tbl-action').textContent = 'Зайнятий';
       } else {
         g.classList.remove('booked');
-        g.querySelector('.tbl-action').textContent = 'Забронювати';
+        g.querySelector('.tbl-action').textContent = 'Вільний';
       }
     });
-    document.querySelectorAll('.bar-stool').forEach(g => {
+    document.querySelectorAll('.seat').forEach(g => {
       const name = g.dataset.name;
       if (booked.includes(name)) g.classList.add('booked');
       else g.classList.remove('booked');
@@ -484,7 +673,7 @@ function applyPulse() {
   const firstFree = document.querySelector('.tbl:not(.booked)');
   if (firstFree) {
     firstFree.classList.add('pulse');
-    setTimeout(() => firstFree.classList.remove('pulse'), 5000);
+    setTimeout(() => firstFree.classList.remove('pulse'), 5200);
   }
 }
 
@@ -508,7 +697,7 @@ function onTableClick(el) {
   state.tableSeats = parseInt(el.dataset.seats);
   state.guests = Math.min(2, state.tableSeats);
   document.getElementById('modal-title').textContent = state.tableName;
-  document.getElementById('modal-sub').textContent = state.tableSeats + ' місць';
+  document.getElementById('modal-sub').textContent = state.tableSeats + ' ' + seatWord(state.tableSeats);
   document.getElementById('g-val').textContent = state.guests;
   const today = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -522,6 +711,7 @@ function onTableClick(el) {
   document.getElementById('f-note').value = '';
   document.getElementById('btn-confirm').disabled = true;
   document.getElementById('modal').classList.add('open');
+  document.querySelector('.modal-sheet').scrollTop = 0;
 }
 
 async function loadTimeSlots(date, tableName) {
