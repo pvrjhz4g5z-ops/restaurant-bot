@@ -70,6 +70,37 @@ html, body {
 .floor-title { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text2); }
 
 .floor-wrap { padding: 12px; }
+
+.tap-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 12px 12px;
+  padding: 11px 16px;
+  background: var(--orange-light);
+  border: 1.5px solid var(--orange);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--orange-dark);
+  font-weight: 500;
+}
+.tap-hint .hint-finger {
+  font-size: 16px;
+  animation: tapBounce 1.4s ease-in-out infinite;
+}
+@keyframes tapBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.tbl.pulse .tbl-rect {
+  animation: tblPulse 1.6s ease-in-out infinite;
+}
+@keyframes tblPulse {
+  0%, 100% { stroke-width: 1.5; fill: #edf5ec; }
+  50% { stroke-width: 3; fill: #d4ecd0; }
+}
 .floor-svg { width: 100%; height: auto; display: block; }
 
 .legend { display: flex; gap: 16px; padding: 0 12px 16px; justify-content: center; }
@@ -146,6 +177,15 @@ html, body {
 .tbl.booked .tbl-num { fill: #c0392b; }
 .tbl.booked .tbl-action { fill: #c0392b; }
 .tbl.booked .tbl-seats { fill: #e0a0a0; }
+
+/* Barні крісла — клікабельні */
+.bar-stool { cursor: pointer; }
+.bar-stool .stool-circle { fill: #d4ecd0; stroke: #5a9e52; stroke-width: 1.5; transition: all 0.15s; }
+.bar-stool .stool-num { fill: #3a7a34; }
+.bar-stool:active .stool-circle { opacity: 0.8; }
+.bar-stool.booked { cursor: not-allowed; }
+.bar-stool.booked .stool-circle { fill: #fadbd8; stroke: #c0392b; }
+.bar-stool.booked .stool-num { fill: #c0392b; }
 </style>
 </head>
 <body>
@@ -167,6 +207,10 @@ html, body {
     <span class="floor-title">Оберіть столик</span>
     <span style="width:60px"></span>
   </div>
+  <div class="tap-hint">
+    <span class="hint-finger">👆</span>
+    <span>Натисніть на вільний столик</span>
+  </div>
   <div class="floor-wrap">
     <svg class="floor-svg" viewBox="0 0 340 520" xmlns="http://www.w3.org/2000/svg">
       <!-- Room outline — orange -->
@@ -177,16 +221,26 @@ html, body {
       <!-- Bar — orange -->
       <rect x="18" y="18" width="304" height="72" rx="8" fill="#fff3e6" stroke="#e07020" stroke-width="1.5"/>
       <text x="90" y="48" text-anchor="middle" font-size="8" fill="#b85510" letter-spacing="0.15em">БАР</text>
-      <circle cx="130" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
-      <text x="130" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">1</text>
-      <circle cx="158" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
-      <text x="158" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">2</text>
-      <circle cx="186" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
-      <text x="186" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">3</text>
-      <circle cx="214" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
-      <text x="214" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">4</text>
-      <circle cx="242" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
-      <text x="242" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">5</text>
+      <g id="b1" class="bar-stool" data-id="b1" data-name="Бар 1" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="130" cy="52" r="11" class="stool-circle"/>
+        <text x="130" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">1</text>
+      </g>
+      <g id="b2" class="bar-stool" data-id="b2" data-name="Бар 2" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="158" cy="52" r="11" class="stool-circle"/>
+        <text x="158" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">2</text>
+      </g>
+      <g id="b3" class="bar-stool" data-id="b3" data-name="Бар 3" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="186" cy="52" r="11" class="stool-circle"/>
+        <text x="186" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">3</text>
+      </g>
+      <g id="b4" class="bar-stool" data-id="b4" data-name="Бар 4" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="214" cy="52" r="11" class="stool-circle"/>
+        <text x="214" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">4</text>
+      </g>
+      <g id="b5" class="bar-stool" data-id="b5" data-name="Бар 5" data-seats="1" onclick="onTableClick(this)">
+        <circle cx="242" cy="52" r="11" class="stool-circle"/>
+        <text x="242" y="55" text-anchor="middle" font-size="9" font-weight="600" class="stool-num">5</text>
+      </g>
 
       <g id="t1" class="tbl" data-id="1" data-name="Стіл 1" data-seats="2" onclick="onTableClick(this)">
         <rect x="20" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
@@ -379,10 +433,19 @@ function formatPhone(input) {
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
+// При фокусі на полі — м'яко проскролити до нього (не фіксуючи)
+document.querySelectorAll('.modal-sheet input').forEach(inp => {
+  inp.addEventListener('focus', () => {
+    setTimeout(() => {
+      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  });
+});
+
 async function loadTableStatuses(date) {
   try {
     const res = await fetch(`${API_BASE}/api/tables?date=${date}`);
-    if (!res.ok) return;
+    if (!res.ok) { applyPulse(); return; }
     const data = await res.json();
     const booked = data.booked_tables || [];
     document.querySelectorAll('.tbl').forEach(g => {
@@ -395,7 +458,22 @@ async function loadTableStatuses(date) {
         g.querySelector('.tbl-action').textContent = 'Забронювати';
       }
     });
-  } catch(e) {}
+    document.querySelectorAll('.bar-stool').forEach(g => {
+      const name = g.dataset.name;
+      if (booked.includes(name)) g.classList.add('booked');
+      else g.classList.remove('booked');
+    });
+    applyPulse();
+  } catch(e) { applyPulse(); }
+}
+
+function applyPulse() {
+  document.querySelectorAll('.tbl').forEach(t => t.classList.remove('pulse'));
+  const firstFree = document.querySelector('.tbl:not(.booked)');
+  if (firstFree) {
+    firstFree.classList.add('pulse');
+    setTimeout(() => firstFree.classList.remove('pulse'), 5000);
+  }
 }
 
 function showFloor() {
