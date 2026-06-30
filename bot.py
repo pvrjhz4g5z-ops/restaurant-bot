@@ -94,6 +94,19 @@ async def handle_webapp_data(message: Message):
             await message.answer("❌ На жаль, цей столик вже заброньований на обраний час. Оберіть інший.")
             return
 
+        # Ліміт активних бронювань на одного користувача
+        all_bookings = await db.get_all_bookings()
+        active_count = sum(
+            1 for b in all_bookings
+            if b.get('user_id') == message.from_user.id and b.get('status') in ('pending', 'confirmed')
+        )
+        if active_count >= 3:
+            await message.answer(
+                "❌ У вас вже є 3 активні бронювання. "
+                "Дочекайтесь їх завершення або скасуйте одне, щоб забронювати нове."
+            )
+            return
+
         booking_id = await db.save_booking(
             user_id=message.from_user.id,
             table_name=table_name,
