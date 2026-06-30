@@ -38,13 +38,61 @@ async def start(message: Message):
 async def handle_webapp_data(message: Message):
     try:
         data = json.loads(message.web_app_data.data)
-        table_name = data.get("tableName", "—")
-        date = data.get("date", "—")
-        time = data.get("time", "—")
-        guests = data.get("guests", "—")
-        name = data.get("name", "—")
-        phone = data.get("phone", "—")
-        note = data.get("note", "")
+        table_name = str(data.get("tableName", "—"))[:50]
+        date = str(data.get("date", "—"))[:20]
+        time = str(data.get("time", "—"))[:10]
+        guests = data.get("guests", 1)
+        name = str(data.get("name", "—"))[:100]
+        phone = str(data.get("phone", "—"))[:30]
+        note = str(data.get("note", ""))[:300]
+
+        # ── Валідація ──
+        import re
+        from datetime import datetime, date as date_cls
+
+        VALID_TABLES = {f"Стіл {i}" for i in range(1, 11)} | {"VIP-стіл"}
+        VALID_TIMES = {'12:00','12:30','13:00','13:30','14:00','14:30',
+                       '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'}
+
+        # Стіл має бути зі списку
+        if table_name not in VALID_TABLES:
+            await message.answer("❌ Невірний столик.")
+            return
+        # Час має бути зі списку
+        if time not in VALID_TIMES:
+            await message.answer("❌ Невірний час.")
+            return
+        # Дата у правильному форматі і не в минулому
+        try:
+            booking_date = datetime.strptime(date, "%Y-%m-%d").date()
+            if booking_date < date_cls.today():
+                await message.answer("❌ Не можна бронювати на минулу дату.")
+                return
+        except ValueError:
+            await message.answer("❌ Невірна дата.")
+            return
+        # Гостей — число від 1 до 6
+        try:
+            guests = int(guests)
+            if guests < 1 or guests > 6:
+                await message.answer("❌ Невірна кількість гостей.")
+                return
+        except (ValueError, TypeError):
+            await message.answer("❌ Невірна кількість гостей.")
+            return
+        # Ім'я не порожнє
+        if not name.strip() or name == "—":
+            await message.answer("❌ Вкажіть ім'я.")
+            return
+        # Телефон містить цифри
+        if not re.search(r'\d{6,}', phone):
+            await message.answer("❌ Невірний номер телефону.")
+            return
+        # Перевірка чи стіл вже зайнятий на цей час
+        taken = await db.get_booked_slots(date, table_name)
+        if time in taken:
+            await message.answer("❌ На жаль, цей столик вже заброньований на обраний час. Оберіть інший.")
+            return
 
         booking_id = await db.save_booking(
             user_id=message.from_user.id,
@@ -139,24 +187,50 @@ async def cancel_booking(callback: types.CallbackQuery):
 
 
 # ── HTTP API ──
+# ── HTTP API with rate limiting ──
+import time as time_module
+from collections import defaultdict
+
+_rate_limit = defaultdict(list)
+RATE_LIMIT_MAX = 30  # requests
+RATE_LIMIT_WINDOW = 60  # seconds
+
+
+def check_rate_limit(ip):
+    now = time_module.time()
+    _rate_limit[ip] = [t for t in _rate_limit[ip] if now - t < RATE_LIMIT_WINDOW]
+    if len(_rate_limit[ip]) >= RATE_LIMIT_MAX:
+        return False
+    _rate_limit[ip].append(now)
+    return True
+
+
 async def api_tables(request):
-    date = request.rel_url.query.get('date', '')
+    ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
+    if not check_rate_limit(ip):
+        return web.json_response({"booked_tables": [], "error": "rate_limited"}, status=429,
+                                 headers={"Access-Control-Allow-Origin": "*"})
+    date = request.rel_url.query.get('date', '')[:20]
     try:
         bookings = await db.get_all_bookings(date)
         booked_tables = list(set(b['table_name'] for b in bookings if b['status'] != 'cancelled'))
         return web.json_response({"booked_tables": booked_tables}, headers={"Access-Control-Allow-Origin": "*"})
-    except Exception as e:
-        return web.json_response({"booked_tables": [], "error": str(e)})
+    except Exception:
+        return web.json_response({"booked_tables": []}, headers={"Access-Control-Allow-Origin": "*"})
 
 
 async def api_slots(request):
-    date = request.rel_url.query.get('date', '')
-    table = request.rel_url.query.get('table', '')
+    ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
+    if not check_rate_limit(ip):
+        return web.json_response({"taken": [], "error": "rate_limited"}, status=429,
+                                 headers={"Access-Control-Allow-Origin": "*"})
+    date = request.rel_url.query.get('date', '')[:20]
+    table = request.rel_url.query.get('table', '')[:50]
     try:
         taken = await db.get_booked_slots(date, table)
         return web.json_response({"taken": taken}, headers={"Access-Control-Allow-Origin": "*"})
-    except Exception as e:
-        return web.json_response({"taken": [], "error": str(e)})
+    except Exception:
+        return web.json_response({"taken": []}, headers={"Access-Control-Allow-Origin": "*"})
 
 
 async def main():
