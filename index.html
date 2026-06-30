@@ -9,41 +9,38 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0c0c0c;
-  --bg2: #141414;
-  --text: #f0ede8;
-  --text2: #888;
-  --accent: #c9a96e;
-  --free-fill: #1a1a1a;
-  --free-border: #3a3a3a;
-  --booked-fill: #111;
-  --booked-border: #222;
-  --radius: 14px;
+  --bg: #ffffff;
+  --bg2: #fdf7f2;
+  --text: #1a0e00;
+  --text2: #8a6040;
+  --orange: #e07020;
+  --orange-dark: #b85510;
+  --orange-light: #fff3e6;
+  --border: #f0d0b0;
 }
 
 html, body {
   height: 100%;
-  background: var(--bg);
+  background: #ffffff;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
   overflow-x: hidden;
 }
 
-/* ── LANDING ── */
 #landing {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   padding: 24px;
+  background: #ffffff;
 }
 
 .landing-card {
   width: 100%;
   max-width: 360px;
   aspect-ratio: 3/4;
-  background: var(--bg2);
-  border: 1px solid #1e1e1e;
+  background: linear-gradient(160deg, #e07020 0%, #b85510 100%);
   border-radius: 24px;
   display: flex;
   flex-direction: column;
@@ -53,373 +50,106 @@ html, body {
   position: relative;
   overflow: hidden;
 }
-
 .landing-card::before {
   content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 30%, rgba(201,169,110,0.06) 0%, transparent 70%);
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.1) 0%, transparent 65%);
   pointer-events: none;
 }
+.landing-logo { position: absolute; top: 40px; left: 0; right: 0; text-align: center; }
+.landing-logo-mark { width: 36px; height: 1px; background: rgba(255,255,255,0.4); margin: 0 auto 16px; }
+.landing-name { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.landing-tagline { font-size: 27px; font-weight: 300; letter-spacing: -0.02em; color: #fff; text-align: center; line-height: 1.3; margin-bottom: 36px; }
+.btn-book { width: 100%; padding: 15px; background: #fff; color: var(--orange-dark); border: none; border-radius: 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s; }
+.btn-book:active { opacity: 0.85; }
 
-.landing-logo {
-  position: absolute;
-  top: 40px;
-  left: 0; right: 0;
-  text-align: center;
-}
+#floorpage { display: none; min-height: 100vh; background: #ffffff; }
 
-.landing-logo-mark {
-  width: 40px;
-  height: 1px;
-  background: var(--accent);
-  margin: 0 auto 20px;
-}
+.floor-header { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border); background: #ffffff; position: sticky; top: 0; z-index: 5; }
+.back-btn { background: none; border: none; color: var(--orange); font-size: 13px; cursor: pointer; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+.floor-title { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text2); }
 
-.landing-name {
-  font-size: 11px;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 400;
-}
+.floor-wrap { padding: 12px; }
+.floor-svg { width: 100%; height: auto; display: block; }
 
-.landing-tagline {
-  font-size: 28px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  text-align: center;
-  line-height: 1.25;
-  margin-bottom: 36px;
-}
+.legend { display: flex; gap: 16px; padding: 0 12px 16px; justify-content: center; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
 
-.btn-book {
-  width: 100%;
-  padding: 16px;
-  background: var(--accent);
-  color: #0c0c0c;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.btn-book:active { opacity: 0.8; }
-
-/* ── FLOOR PLAN ── */
-#floorpage {
-  display: none;
-  min-height: 100vh;
-  background: var(--bg);
-}
-
-.floor-header {
-  padding: 20px 20px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  color: var(--text2);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 8px 0;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.floor-title {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text2);
-}
-
-.floor-wrap {
-  padding: 16px;
-}
-
-.floor-svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* TABLE STYLES in SVG via class */
-.tbl-free { cursor: pointer; }
-.tbl-free .tbl-body { fill: var(--free-fill); stroke: #2e2e2e; stroke-width: 1; transition: fill 0.15s; }
-.tbl-free:active .tbl-body { fill: #252525; }
-.tbl-free .tbl-label { fill: var(--text); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; }
-.tbl-free .tbl-sub { fill: var(--accent); font-size: 8px; }
-
-.tbl-booked .tbl-body { fill: #0f0f0f; stroke: #1a1a1a; stroke-width: 1; }
-.tbl-booked .tbl-label { fill: #333; font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; }
-.tbl-booked .tbl-sub { fill: #2a2a2a; font-size: 8px; }
-
-/* ── BOOKING MODAL ── */
-#modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
-  align-items: flex-end;
-  justify-content: center;
-}
+#modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(26,14,0,0.35); backdrop-filter: blur(4px); align-items: flex-end; justify-content: center; }
 #modal.open { display: flex; }
 
-.modal-sheet {
-  width: 100%;
-  max-width: 480px;
-  background: var(--bg2);
-  border-radius: 24px 24px 0 0;
-  padding: 12px 24px 40px;
-  border-top: 1px solid #1e1e1e;
-}
+.modal-sheet { width: 100%; max-width: 480px; background: #ffffff; border-radius: 24px 24px 0 0; border-top: 2px solid var(--orange); max-height: 92vh; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; position: relative; padding: 12px 24px 44px; }
 
-.modal-handle {
-  width: 36px; height: 4px;
-  background: #2a2a2a;
-  border-radius: 2px;
-  margin: 0 auto 24px;
-}
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+.modal-close { position: absolute; top: 14px; right: 20px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.modal-close:hover { background: var(--orange-light); color: var(--orange); border-color: var(--orange); }
 
-.modal-title {
-  font-size: 17px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  letter-spacing: -0.01em;
-}
+.modal-title { font-size: 17px; font-weight: 600; margin-bottom: 3px; color: var(--orange-dark); }
+.modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 22px; }
 
-.modal-sub {
-  font-size: 12px;
-  color: var(--text2);
-  margin-bottom: 24px;
-}
+.field { margin-bottom: 13px; }
+.field label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); margin-bottom: 7px; font-weight: 500; }
+.field input { width: 100%; padding: 12px 14px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; transition: border-color 0.2s; }
+.field input:focus { border-color: var(--orange); }
 
-.field {
-  margin-bottom: 14px;
-}
-.field label {
-  display: block;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text2);
-  margin-bottom: 8px;
-}
-.field input {
-  width: 100%;
-  padding: 13px 14px;
-  background: #111;
-  border: 1px solid #222;
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.field input:focus { border-color: var(--accent); }
+.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 18px; }
+.time-btn { padding: 9px 4px; text-align: center; font-size: 12px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; transition: all 0.15s; }
+.time-btn.sel { background: var(--orange-light); border-color: var(--orange); color: var(--orange-dark); font-weight: 600; }
+.time-btn.taken { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; background: #fdecea; border-color: #c0392b; color: #c0392b; }
 
-.time-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
-}
-.time-btn {
-  padding: 10px 4px;
-  text-align: center;
-  font-size: 12px;
-  background: #111;
-  border: 1px solid #222;
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.time-btn.sel {
-  background: rgba(201,169,110,0.12);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.time-btn.taken {
-  opacity: 0.2;
-  cursor: not-allowed;
-  text-decoration: line-through;
-}
+.guests-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.guests-row label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); flex: 1; font-weight: 500; }
+.g-btn { width: 32px; height: 32px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 50%; color: var(--orange); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.g-val { font-size: 16px; font-weight: 600; min-width: 20px; text-align: center; color: var(--orange-dark); }
 
-.guests-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.guests-row label {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text2);
-  flex: 1;
-}
-.g-btn {
-  width: 32px; height: 32px;
-  background: #111; border: 1px solid #222;
-  border-radius: 50%; color: var(--text);
-  font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.g-val { font-size: 16px; font-weight: 500; min-width: 20px; text-align: center; }
+.divider { height: 1px; background: var(--border); margin: 18px 0; }
 
-.divider {
-  height: 1px;
-  background: #1a1a1a;
-  margin: 20px 0;
-}
-
-.phone-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: #111;
-  border: 1px solid #222;
-  border-radius: 10px;
-  overflow: visible;
-}
-.phone-wrap:focus-within { border-color: var(--accent); }
-.phone-country {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 13px 10px 13px 14px;
-  cursor: pointer;
-  border-right: 1px solid #222;
-  white-space: nowrap;
-  user-select: none;
-  flex-shrink: 0;
-}
-.phone-country:active { background: #1a1a1a; }
+.phone-wrap { position: relative; display: flex; align-items: center; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px; overflow: visible; }
+.phone-wrap:focus-within { border-color: var(--orange); }
+.phone-country { display: flex; align-items: center; gap: 4px; padding: 12px 10px 12px 14px; cursor: pointer; border-right: 1.5px solid var(--border); white-space: nowrap; user-select: none; flex-shrink: 0; }
 #country-code { font-size: 14px; color: var(--text); }
 .phone-arrow { font-size: 10px; color: var(--text2); }
-.phone-wrap input[type=tel] {
-  flex: 1;
-  padding: 13px 14px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-size: 15px;
-  outline: none;
-  width: 100%;
-}
-.country-menu {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 10px;
-  z-index: 200;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-}
+.phone-wrap input[type=tel] { flex: 1; padding: 12px 14px; background: transparent; border: none; color: var(--text); font-size: 15px; outline: none; width: 100%; }
+.country-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1.5px solid var(--border); border-radius: 10px; z-index: 200; overflow: hidden; box-shadow: 0 8px 24px rgba(26,14,0,0.12); }
 .country-menu.open { display: block; }
-.country-search-wrap { padding: 10px; border-bottom: 1px solid #222; }
-.country-search-wrap input {
-  width: 100%;
-  padding: 8px 12px;
-  background: #111;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-}
+.country-search-wrap { padding: 10px; border-bottom: 1px solid var(--border); }
+.country-search-wrap input { width: 100%; padding: 8px 12px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
 .country-list { max-height: 200px; overflow-y: auto; }
-.country-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text);
-}
-.country-item:hover { background: #222; }
+.country-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; font-size: 13px; color: var(--text); }
+.country-item:hover { background: var(--orange-light); }
 .country-item .c-code { color: var(--text2); margin-left: auto; font-size: 12px; }
 
-.btn-confirm {
-  width: 100%;
-  padding: 16px;
-  background: var(--accent);
-  color: #0c0c0c;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
+.btn-confirm { width: 100%; padding: 15px; background: var(--orange); color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s; margin-top: 8px; }
 .btn-confirm:disabled { opacity: 0.3; cursor: not-allowed; }
-.btn-confirm:active:not(:disabled) { opacity: 0.8; }
+.btn-confirm:active:not(:disabled) { opacity: 0.85; }
 
-/* ── SUCCESS ── */
-#successpage {
-  display: none;
-  min-height: 100vh;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
+#successpage { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; background: #ffffff; }
 #successpage.open { display: flex; }
+.success-card { text-align: center; max-width: 300px; }
+.success-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--orange-light); margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.success-title { font-size: 22px; font-weight: 600; color: var(--orange-dark); margin-bottom: 8px; }
+.success-sub { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 32px; }
+.success-detail { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.success-detail span:first-child { color: var(--text2); }
+.success-detail span:last-child { font-weight: 500; color: var(--orange-dark); }
 
-.success-card {
-  text-align: center;
-  max-width: 300px;
-}
-.success-line {
-  width: 1px; height: 60px;
-  background: var(--accent);
-  margin: 0 auto 32px;
-}
-.success-title {
-  font-size: 22px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  margin-bottom: 12px;
-}
-.success-sub {
-  font-size: 13px;
-  color: var(--text2);
-  line-height: 1.6;
-  margin-bottom: 40px;
-}
-.success-detail {
-  font-size: 12px;
-  color: var(--text2);
-  letter-spacing: 0.05em;
-  padding: 6px 0;
-  border-bottom: 1px solid #1a1a1a;
-  display: flex;
-  justify-content: space-between;
-}
-.success-detail span:last-child { color: var(--text); }
+/* Столики */
+.tbl { cursor: pointer; }
+.tbl .tbl-rect { fill: #edf5ec; stroke: #5a9e52; stroke-width: 1.5; transition: all 0.15s; }
+.tbl .tbl-num { fill: #3a7a34; }
+.tbl .tbl-action { fill: #3a7a34; }
+.tbl .tbl-seats { fill: #7ab874; }
+.tbl:active .tbl-rect { opacity: 0.8; }
+.tbl.booked { cursor: not-allowed; }
+.tbl.booked .tbl-rect { fill: #fdecea; stroke: #c0392b; }
+.tbl.booked .tbl-num { fill: #c0392b; }
+.tbl.booked .tbl-action { fill: #c0392b; }
+.tbl.booked .tbl-seats { fill: #e0a0a0; }
 </style>
 </head>
 <body>
 
-<!-- LANDING -->
 <div id="landing">
   <div class="landing-card">
     <div class="landing-logo">
@@ -431,7 +161,6 @@ html, body {
   </div>
 </div>
 
-<!-- FLOOR PLAN -->
 <div id="floorpage">
   <div class="floor-header">
     <button class="back-btn" onclick="showLanding()">← Назад</button>
@@ -440,163 +169,133 @@ html, body {
   </div>
   <div class="floor-wrap">
     <svg class="floor-svg" viewBox="0 0 340 520" xmlns="http://www.w3.org/2000/svg">
+      <!-- Room outline — orange -->
+      <rect x="8" y="8" width="324" height="504" rx="12" fill="#ffffff" stroke="#e07020" stroke-width="2"/>
+      <rect x="130" y="500" width="80" height="8" rx="4" fill="#e07020"/>
+      <text x="170" y="507" text-anchor="middle" font-size="7" fill="#ffffff" letter-spacing="0.1em">ВХІД</text>
 
-      <!-- Room outline -->
-      <rect x="8" y="8" width="324" height="504" rx="12" fill="none" stroke="#1c1c1c" stroke-width="1"/>
+      <!-- Bar — orange -->
+      <rect x="18" y="18" width="304" height="72" rx="8" fill="#fff3e6" stroke="#e07020" stroke-width="1.5"/>
+      <text x="90" y="48" text-anchor="middle" font-size="8" fill="#b85510" letter-spacing="0.15em">БАР</text>
+      <circle cx="130" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
+      <text x="130" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">1</text>
+      <circle cx="158" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
+      <text x="158" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">2</text>
+      <circle cx="186" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
+      <text x="186" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">3</text>
+      <circle cx="214" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
+      <text x="214" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">4</text>
+      <circle cx="242" cy="52" r="10" fill="#ffe0c0" stroke="#e07020" stroke-width="1"/>
+      <text x="242" y="55" text-anchor="middle" font-size="9" font-weight="600" fill="#b85510">5</text>
 
-      <!-- Entrance indicator -->
-      <rect x="130" y="500" width="80" height="8" rx="4" fill="#1a1a1a"/>
-      <text x="170" y="507" text-anchor="middle" font-size="7" fill="#333" letter-spacing="0.1em">ВХІД</text>
-
-      <!-- ── BAR AREA ── -->
-      <rect x="18" y="18" width="304" height="72" rx="8" fill="#111" stroke="#1e1e1e" stroke-width="1"/>
-      <text x="90" y="48" text-anchor="middle" font-size="8" fill="#444" letter-spacing="0.15em">БАР</text>
-
-      <!-- Bar stools (5) -->
-      <circle cx="130" cy="52" r="10" fill="#151515" stroke="#252525" stroke-width="1"/>
-      <text x="130" y="56" text-anchor="middle" font-size="7" fill="#444">①</text>
-
-      <circle cx="158" cy="52" r="10" fill="#151515" stroke="#252525" stroke-width="1"/>
-      <text x="158" y="56" text-anchor="middle" font-size="7" fill="#444">②</text>
-
-      <circle cx="186" cy="52" r="10" fill="#151515" stroke="#252525" stroke-width="1"/>
-      <text x="186" y="56" text-anchor="middle" font-size="7" fill="#444">③</text>
-
-      <circle cx="214" cy="52" r="10" fill="#151515" stroke="#252525" stroke-width="1"/>
-      <text x="214" y="56" text-anchor="middle" font-size="7" fill="#444">④</text>
-
-      <circle cx="242" cy="52" r="10" fill="#151515" stroke="#252525" stroke-width="1"/>
-      <text x="242" y="56" text-anchor="middle" font-size="7" fill="#444">⑤</text>
-
-      <!-- ── ROW 1: window tables (2p each) ── -->
-      <!-- T1 -->
-      <g class="tbl-free" data-id="1" data-name="Стіл 1" data-seats="2" onclick="openModal(this)">
-        <rect class="tbl-body" x="20" y="112" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="54" y="144" text-anchor="middle">Стіл 1</text>
-        <text class="tbl-sub" x="54" y="157" text-anchor="middle">Забронювати</text>
+      <g id="t1" class="tbl" data-id="1" data-name="Стіл 1" data-seats="2" onclick="onTableClick(this)">
+        <rect x="20" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="54" y="141" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">1</text>
+        <text x="54" y="155" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="54" y="167" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
       </g>
-      <!-- T2 -->
-      <g class="tbl-free" data-id="2" data-name="Стіл 2" data-seats="2" onclick="openModal(this)">
-        <rect class="tbl-body" x="136" y="112" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="170" y="144" text-anchor="middle">Стіл 2</text>
-        <text class="tbl-sub" x="170" y="157" text-anchor="middle">Забронювати</text>
+      <g id="t2" class="tbl" data-id="2" data-name="Стіл 2" data-seats="2" onclick="onTableClick(this)">
+        <rect x="136" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="170" y="141" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">2</text>
+        <text x="170" y="155" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="170" y="167" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
       </g>
-      <!-- T3 booked -->
-      <g class="tbl-booked" data-id="3" data-name="Стіл 3" data-seats="2">
-        <rect class="tbl-body" x="252" y="112" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="286" y="144" text-anchor="middle">Стіл 3</text>
-        <text class="tbl-sub" x="286" y="157" text-anchor="middle">Заброньовано</text>
+      <g id="t3" class="tbl" data-id="3" data-name="Стіл 3" data-seats="2" onclick="onTableClick(this)">
+        <rect x="252" y="112" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="286" y="141" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">3</text>
+        <text x="286" y="155" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="286" y="167" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
       </g>
-
-      <!-- ── ROW 2 ── -->
-      <!-- T4 -->
-      <g class="tbl-free" data-id="4" data-name="Стіл 4" data-seats="4" onclick="openModal(this)">
-        <rect class="tbl-body" x="20" y="214" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="54" y="246" text-anchor="middle">Стіл 4</text>
-        <text class="tbl-sub" x="54" y="259" text-anchor="middle">Забронювати</text>
+      <g id="t4" class="tbl" data-id="4" data-name="Стіл 4" data-seats="4" onclick="onTableClick(this)">
+        <rect x="20" y="214" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="54" y="243" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">4</text>
+        <text x="54" y="257" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="54" y="269" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
       </g>
-      <!-- T5 booked -->
-      <g class="tbl-booked" data-id="5" data-name="Стіл 5" data-seats="4">
-        <rect class="tbl-body" x="136" y="214" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="170" y="246" text-anchor="middle">Стіл 5</text>
-        <text class="tbl-sub" x="170" y="259" text-anchor="middle">Заброньовано</text>
+      <g id="t5" class="tbl" data-id="5" data-name="Стіл 5" data-seats="4" onclick="onTableClick(this)">
+        <rect x="136" y="214" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="170" y="243" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">5</text>
+        <text x="170" y="257" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="170" y="269" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
       </g>
-      <!-- T6 -->
-      <g class="tbl-free" data-id="6" data-name="Стіл 6" data-seats="4" onclick="openModal(this)">
-        <rect class="tbl-body" x="252" y="214" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="286" y="246" text-anchor="middle">Стіл 6</text>
-        <text class="tbl-sub" x="286" y="259" text-anchor="middle">Забронювати</text>
+      <g id="t6" class="tbl" data-id="6" data-name="Стіл 6" data-seats="4" onclick="onTableClick(this)">
+        <rect x="252" y="214" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="286" y="243" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">6</text>
+        <text x="286" y="257" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="286" y="269" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
       </g>
-
-      <!-- ── ROW 3 ── -->
-      <!-- T7 -->
-      <g class="tbl-free" data-id="7" data-name="Стіл 7" data-seats="2" onclick="openModal(this)">
-        <rect class="tbl-body" x="20" y="316" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="54" y="348" text-anchor="middle">Стіл 7</text>
-        <text class="tbl-sub" x="54" y="361" text-anchor="middle">Забронювати</text>
+      <g id="t7" class="tbl" data-id="7" data-name="Стіл 7" data-seats="2" onclick="onTableClick(this)">
+        <rect x="20" y="316" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="54" y="345" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">7</text>
+        <text x="54" y="359" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="54" y="371" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
       </g>
-      <!-- T8 -->
-      <g class="tbl-free" data-id="8" data-name="Стіл 8" data-seats="4" onclick="openModal(this)">
-        <rect class="tbl-body" x="136" y="316" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="170" y="348" text-anchor="middle">Стіл 8</text>
-        <text class="tbl-sub" x="170" y="361" text-anchor="middle">Забронювати</text>
+      <g id="t8" class="tbl" data-id="8" data-name="Стіл 8" data-seats="4" onclick="onTableClick(this)">
+        <rect x="136" y="316" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="170" y="345" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">8</text>
+        <text x="170" y="359" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="170" y="371" text-anchor="middle" font-size="7" class="tbl-seats">4 місця</text>
       </g>
-      <!-- T9 booked -->
-      <g class="tbl-booked" data-id="9" data-name="Стіл 9" data-seats="2">
-        <rect class="tbl-body" x="252" y="316" width="68" height="68" rx="6"/>
-        <text class="tbl-label" x="286" y="348" text-anchor="middle">Стіл 9</text>
-        <text class="tbl-sub" x="286" y="361" text-anchor="middle">Заброньовано</text>
+      <g id="t9" class="tbl" data-id="9" data-name="Стіл 9" data-seats="2" onclick="onTableClick(this)">
+        <rect x="252" y="316" width="68" height="68" rx="6" class="tbl-rect"/>
+        <text x="286" y="345" text-anchor="middle" font-size="10" font-weight="600" class="tbl-num">9</text>
+        <text x="286" y="359" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="286" y="371" text-anchor="middle" font-size="7" class="tbl-seats">2 місця</text>
       </g>
-
-      <!-- ── ROW 4: large table ── -->
-      <!-- T10 VIP -->
-      <g class="tbl-free" data-id="10" data-name="VIP-стіл" data-seats="6" onclick="openModal(this)">
-        <rect class="tbl-body" x="20" y="418" width="300" height="68" rx="6"/>
-        <text class="tbl-label" x="170" y="450" text-anchor="middle">VIP-стіл</text>
-        <text class="tbl-sub" x="170" y="463" text-anchor="middle">Забронювати · 6 місць</text>
+      <g id="t10" class="tbl" data-id="10" data-name="VIP-стіл" data-seats="6" onclick="onTableClick(this)">
+        <rect x="20" y="418" width="300" height="68" rx="6" class="tbl-rect"/>
+        <text x="170" y="447" text-anchor="middle" font-size="11" font-weight="600" class="tbl-num">VIP-стіл</text>
+        <text x="170" y="461" text-anchor="middle" font-size="8" class="tbl-action">Забронювати</text>
+        <text x="170" y="473" text-anchor="middle" font-size="7" class="tbl-seats">6 місць</text>
       </g>
-
     </svg>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#edf5ec;border:1.5px solid #5a9e52"></div>Вільний</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fdecea;border:1.5px solid #c0392b"></div>Заброньований</div>
   </div>
 </div>
 
-<!-- BOOKING MODAL -->
 <div id="modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal()">×</button>
     <div class="modal-title" id="modal-title">Стіл</div>
     <div class="modal-sub" id="modal-sub">2 місця</div>
-
-    <div class="field">
-      <label>Дата</label>
-      <input type="date" id="pick-date">
-    </div>
-
+    <div class="field"><label>Дата</label><input type="date" id="pick-date"></div>
     <div class="guests-row">
       <label>Гостей</label>
       <button class="g-btn" onclick="changeGuests(-1)">−</button>
       <span class="g-val" id="g-val">2</span>
       <button class="g-btn" onclick="changeGuests(1)">+</button>
     </div>
-
     <div class="time-grid" id="time-grid"></div>
     <div class="divider"></div>
-
-    <div class="field">
-      <label>Ім'я</label>
-      <input type="text" id="f-name" placeholder="Ваше ім'я" oninput="checkForm()">
-    </div>
+    <div class="field"><label>Ім'я</label><input type="text" id="f-name" placeholder="Ваше ім'я" oninput="checkForm()"></div>
     <div class="field">
       <label>Телефон</label>
       <div class="phone-wrap">
-        <div class="phone-country" id="country-btn" onclick="toggleCountryMenu()">
+        <div class="phone-country" onclick="toggleCountryMenu()">
           <span id="country-flag">🇺🇦</span>
           <span id="country-code">+380</span>
           <span class="phone-arrow">▾</span>
         </div>
-        <input type="tel" id="f-phone" placeholder="XX XXX XX XX" oninput="formatPhone(this); checkForm()">
+        <input type="tel" id="f-phone" placeholder="50 375 76 78" oninput="formatPhone(this); checkForm()">
         <div class="country-menu" id="country-menu">
-          <div class="country-search-wrap">
-            <input type="text" id="country-search" placeholder="Пошук..." oninput="filterCountries()">
-          </div>
+          <div class="country-search-wrap"><input type="text" id="country-search" placeholder="Пошук..." oninput="filterCountries()"></div>
           <div class="country-list" id="country-list"></div>
         </div>
       </div>
     </div>
-    <div class="field">
-      <label>Побажання</label>
-      <input type="text" id="f-note" placeholder="Необов'язково">
-    </div>
-
+    <div class="field"><label>Побажання</label><input type="text" id="f-note" placeholder="Необов'язково"></div>
     <button class="btn-confirm" id="btn-confirm" onclick="submitBooking()" disabled>Підтвердити</button>
   </div>
 </div>
 
-<!-- SUCCESS -->
 <div id="successpage">
   <div class="success-card">
-    <div class="success-line"></div>
-    <div class="success-title">Бронювання<br>прийнято</div>
+    <div class="success-icon">✅</div>
+    <div class="success-title">Бронювання<br>прийнято!</div>
     <div class="success-sub">Очікуйте підтвердження<br>від ресторану</div>
     <div id="success-details"></div>
   </div>
@@ -604,14 +303,107 @@ html, body {
 
 <script>
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#0c0c0c'); tg.setBackgroundColor('#0c0c0c'); }
+if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff'); tg.setBackgroundColor('#ffffff'); }
 
 const TIMES = ['12:00','12:30','13:00','13:30','14:00','14:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'];
+const API_BASE = 'https://web-production-aff79.up.railway.app';
 const state = { tableId: null, tableName: '', tableSeats: 0, date: '', time: '', guests: 2 };
+
+const COUNTRIES = [
+  { name: 'Україна', flag: '🇺🇦', code: '+380' },
+  { name: 'Польща', flag: '🇵🇱', code: '+48' },
+  { name: 'Німеччина', flag: '🇩🇪', code: '+49' },
+  { name: 'США', flag: '🇺🇸', code: '+1' },
+  { name: 'Велика Британія', flag: '🇬🇧', code: '+44' },
+  { name: 'Франція', flag: '🇫🇷', code: '+33' },
+  { name: 'Італія', flag: '🇮🇹', code: '+39' },
+  { name: 'Іспанія', flag: '🇪🇸', code: '+34' },
+  { name: 'Чехія', flag: '🇨🇿', code: '+420' },
+  { name: 'Австрія', flag: '🇦🇹', code: '+43' },
+  { name: 'Румунія', flag: '🇷🇴', code: '+40' },
+  { name: 'Угорщина', flag: '🇭🇺', code: '+36' },
+  { name: 'Молдова', flag: '🇲🇩', code: '+373' },
+  { name: 'Туреччина', flag: '🇹🇷', code: '+90' },
+  { name: 'ОАЕ', flag: '🇦🇪', code: '+971' },
+  { name: 'Ізраїль', flag: '🇮🇱', code: '+972' },
+  { name: 'Австралія', flag: '🇦🇺', code: '+61' },
+  { name: 'Нідерланди', flag: '🇳🇱', code: '+31' },
+];
+let selectedCountry = COUNTRIES[0];
+
+function renderCountries(list) {
+  document.getElementById('country-list').innerHTML = list.map(c => `
+    <div class="country-item" onclick="selectCountryItem(${COUNTRIES.indexOf(c)})">
+      <span>${c.flag}</span><span>${c.name}</span><span class="c-code">${c.code}</span>
+    </div>`).join('');
+}
+function filterCountries() {
+  const q = document.getElementById('country-search').value.toLowerCase();
+  renderCountries(COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q)));
+}
+function toggleCountryMenu() {
+  const menu = document.getElementById('country-menu');
+  menu.classList.toggle('open');
+  if (menu.classList.contains('open')) {
+    renderCountries(COUNTRIES);
+    document.getElementById('country-search').value = '';
+    setTimeout(() => document.getElementById('country-search').focus(), 50);
+  }
+}
+function selectCountryItem(idx) {
+  selectedCountry = COUNTRIES[idx];
+  document.getElementById('country-flag').textContent = selectedCountry.flag;
+  document.getElementById('country-code').textContent = selectedCountry.code;
+  document.getElementById('country-menu').classList.remove('open');
+  document.getElementById('f-phone').focus();
+  checkForm();
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.phone-wrap')) {
+    const m = document.getElementById('country-menu');
+    if (m) m.classList.remove('open');
+  }
+});
+
+function formatPhone(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.startsWith('0')) v = v.slice(1);
+  if (v.length > 9) v = v.slice(0, 9);
+  let f = '';
+  if (v.length > 0) f = v.slice(0, 2);
+  if (v.length > 2) f += ' ' + v.slice(2, 5);
+  if (v.length > 5) f += ' ' + v.slice(5, 7);
+  if (v.length > 7) f += ' ' + v.slice(7, 9);
+  input.value = f;
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function loadTableStatuses(date) {
+  try {
+    const res = await fetch(`${API_BASE}/api/tables?date=${date}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const booked = data.booked_tables || [];
+    document.querySelectorAll('.tbl').forEach(g => {
+      const name = g.dataset.name;
+      if (booked.includes(name)) {
+        g.classList.add('booked');
+        g.querySelector('.tbl-action').textContent = 'Заброньовано';
+      } else {
+        g.classList.remove('booked');
+        g.querySelector('.tbl-action').textContent = 'Забронювати';
+      }
+    });
+  } catch(e) {}
+}
 
 function showFloor() {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('floorpage').style.display = 'block';
+  const today = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  loadTableStatuses(`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`);
 }
 
 function showLanding() {
@@ -619,25 +411,22 @@ function showLanding() {
   document.getElementById('landing').style.display = 'flex';
 }
 
-function openModal(el) {
+function onTableClick(el) {
+  if (el.classList.contains('booked')) return;
   state.tableId = el.dataset.id;
   state.tableName = el.dataset.name;
   state.tableSeats = parseInt(el.dataset.seats);
   state.guests = Math.min(2, state.tableSeats);
-
   document.getElementById('modal-title').textContent = state.tableName;
   document.getElementById('modal-sub').textContent = state.tableSeats + ' місць';
   document.getElementById('g-val').textContent = state.guests;
-
   const today = new Date();
   const pad = n => String(n).padStart(2,'0');
   const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
   const di = document.getElementById('pick-date');
-  di.min = todayStr;
-  di.value = todayStr;
+  di.min = todayStr; di.value = todayStr;
   state.date = todayStr;
-
-  buildTimes([]);
+  loadTimeSlots(todayStr, state.tableName);
   document.getElementById('f-name').value = '';
   document.getElementById('f-phone').value = '';
   document.getElementById('f-note').value = '';
@@ -645,10 +434,19 @@ function openModal(el) {
   document.getElementById('modal').classList.add('open');
 }
 
+async function loadTimeSlots(date, tableName) {
+  let taken = [];
+  try {
+    const res = await fetch(`${API_BASE}/api/slots?date=${date}&table=${encodeURIComponent(tableName)}`);
+    if (res.ok) { const d = await res.json(); taken = d.taken || []; }
+  } catch(e) {}
+  buildTimes(taken);
+}
+
 document.getElementById('pick-date').addEventListener('change', e => {
   state.date = e.target.value;
   state.time = '';
-  buildTimes([]);
+  loadTimeSlots(state.date, state.tableName);
   checkForm();
 });
 
@@ -677,84 +475,6 @@ function changeGuests(d) {
   document.getElementById('g-val').textContent = state.guests;
 }
 
-// Country picker
-const COUNTRIES = [
-  { name: 'Україна', flag: '🇺🇦', code: '+380' },
-  { name: 'Польща', flag: '🇵🇱', code: '+48' },
-  { name: 'Німеччина', flag: '🇩🇪', code: '+49' },
-  { name: 'США', flag: '🇺🇸', code: '+1' },
-  { name: 'Велика Британія', flag: '🇬🇧', code: '+44' },
-  { name: 'Франція', flag: '🇫🇷', code: '+33' },
-  { name: 'Італія', flag: '🇮🇹', code: '+39' },
-  { name: 'Іспанія', flag: '🇪🇸', code: '+34' },
-  { name: 'Чехія', flag: '🇨🇿', code: '+420' },
-  { name: 'Австрія', flag: '🇦🇹', code: '+43' },
-  { name: 'Румунія', flag: '🇷🇴', code: '+40' },
-  { name: 'Угорщина', flag: '🇭🇺', code: '+36' },
-  { name: 'Словаччина', flag: '🇸🇰', code: '+421' },
-  { name: 'Молдова', flag: '🇲🇩', code: '+373' },
-  { name: 'Туреччина', flag: '🇹🇷', code: '+90' },
-  { name: 'ОАЕ', flag: '🇦🇪', code: '+971' },
-  { name: 'Ізраїль', flag: '🇮🇱', code: '+972' },
-  { name: 'Австралія', flag: '🇦🇺', code: '+61' },
-  { name: 'Нідерланди', flag: '🇳🇱', code: '+31' },
-];
-
-let selectedCountry = COUNTRIES[0];
-
-function renderCountries(list) {
-  const el = document.getElementById('country-list');
-  el.innerHTML = list.map((c, i) => `
-    <div class="country-item" onclick="selectCountryItem(${COUNTRIES.indexOf(c)})">
-      <span>${c.flag}</span><span>${c.name}</span><span class="c-code">${c.code}</span>
-    </div>
-  `).join('');
-}
-
-function filterCountries() {
-  const q = document.getElementById('country-search').value.toLowerCase();
-  renderCountries(COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q)));
-}
-
-function toggleCountryMenu() {
-  const menu = document.getElementById('country-menu');
-  menu.classList.toggle('open');
-  if (menu.classList.contains('open')) {
-    renderCountries(COUNTRIES);
-    document.getElementById('country-search').value = '';
-    setTimeout(() => document.getElementById('country-search').focus(), 50);
-  }
-}
-
-function selectCountryItem(idx) {
-  selectedCountry = COUNTRIES[idx];
-  document.getElementById('country-flag').textContent = selectedCountry.flag;
-  document.getElementById('country-code').textContent = selectedCountry.code;
-  document.getElementById('country-menu').classList.remove('open');
-  document.getElementById('f-phone').focus();
-  checkForm();
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.phone-wrap')) {
-    const menu = document.getElementById('country-menu');
-    if (menu) menu.classList.remove('open');
-  }
-});
-
-function formatPhone(input) {
-  let v = input.value.replace(/\D/g, '');
-  // Remove leading 0 if present
-  if (v.startsWith('0')) v = v.slice(1);
-  if (v.length > 9) v = v.slice(0, 9);
-  let formatted = '';
-  if (v.length > 0) formatted = v.slice(0, 2);
-  if (v.length > 2) formatted += ' ' + v.slice(2, 5);
-  if (v.length > 5) formatted += ' ' + v.slice(5, 7);
-  if (v.length > 7) formatted += ' ' + v.slice(7, 9);
-  input.value = formatted;
-}
-
 function checkForm() {
   const ok = state.time && state.date &&
     document.getElementById('f-name').value.trim() &&
@@ -764,23 +484,10 @@ function checkForm() {
 
 function submitBooking() {
   const name = document.getElementById('f-name').value.trim();
-  const phone = selectedCountry.code + document.getElementById('f-phone').value.trim();
+  const phone = selectedCountry.code + ' ' + document.getElementById('f-phone').value.trim();
   const note = document.getElementById('f-note').value.trim();
-
-  const data = {
-    tableId: state.tableId,
-    tableName: state.tableName,
-    tableSeats: state.tableSeats,
-    date: state.date,
-    time: state.time,
-    guests: state.guests,
-    name, phone, note
-  };
-
-  if (tg) {
-    tg.sendData(JSON.stringify(data));
-  }
-
+  const data = { tableId: state.tableId, tableName: state.tableName, tableSeats: state.tableSeats, date: state.date, time: state.time, guests: state.guests, name, phone, note };
+  if (tg) tg.sendData(JSON.stringify(data));
   showSuccess(data);
 }
 
@@ -788,7 +495,6 @@ function showSuccess(data) {
   document.getElementById('modal').classList.remove('open');
   document.getElementById('floorpage').style.display = 'none';
   document.getElementById('landing').style.display = 'none';
-
   const dateStr = new Date(data.date).toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
   document.getElementById('success-details').innerHTML = `
     <div class="success-detail"><span>Столик</span><span>${data.tableName}</span></div>
@@ -796,16 +502,10 @@ function showSuccess(data) {
     <div class="success-detail"><span>Час</span><span>${data.time}</span></div>
     <div class="success-detail"><span>Гостей</span><span>${data.guests}</span></div>
     <div class="success-detail"><span>Ім'я</span><span>${data.name}</span></div>
+    <div class="success-detail"><span>Телефон</span><span>${data.phone}</span></div>
   `;
   document.getElementById('successpage').classList.add('open');
 }
-
-// Close modal on backdrop click
-document.getElementById('modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal')) {
-    document.getElementById('modal').classList.remove('open');
-  }
-});
 </script>
 </body>
 </html>
