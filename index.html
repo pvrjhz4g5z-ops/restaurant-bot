@@ -110,7 +110,7 @@ html, body {
 #modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(26,14,0,0.35); backdrop-filter: blur(4px); align-items: flex-end; justify-content: center; }
 #modal.open { display: flex; }
 
-.modal-sheet { width: 100%; max-width: 480px; background: #ffffff; border-radius: 24px 24px 0 0; border-top: 2px solid var(--orange); max-height: 92vh; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; position: relative; padding: 12px 24px 44px; }
+.modal-sheet { width: 100%; max-width: 480px; background: #ffffff; border-radius: 24px 24px 0 0; border-top: 2px solid var(--orange); max-height: 92vh; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; position: relative; padding: 12px 24px 50vh; }
 
 .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
 .modal-close { position: absolute; top: 14px; right: 20px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
@@ -433,14 +433,26 @@ function formatPhone(input) {
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
-// При фокусі на полі — м'яко проскролити до нього (не фіксуючи)
+// При фокусі на полі — проскролити так щоб поле було над клавіатурою
 document.querySelectorAll('.modal-sheet input').forEach(inp => {
   inp.addEventListener('focus', () => {
     setTimeout(() => {
-      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
+      inp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 350);
   });
 });
+
+// Коли клавіатура з'являється (зменшується viewport) — тримати активне поле видимим
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    const active = document.activeElement;
+    if (active && active.tagName === 'INPUT' && active.closest('.modal-sheet')) {
+      setTimeout(() => {
+        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  });
+}
 
 async function loadTableStatuses(date) {
   try {
