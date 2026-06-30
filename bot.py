@@ -346,7 +346,8 @@ async def handle_webapp_data(message: Message):
             await message.answer("❌ Вкажіть ім'я.")
             return
         # Телефон містить цифри
-        if not re.search(r'\d{6,}', phone):
+        digit_count = len(re.findall(r'\d', phone))
+        if digit_count < 7:
             await message.answer("❌ Невірний номер телефону.")
             return
         # Перевірка чи стіл вже зайнятий на цей час
