@@ -744,6 +744,224 @@ async def api_register(request):
         return web.json_response({"error": "Щось пішло не так. Спробуйте ще раз."}, status=500)
 
 
+async def landing_page(request):
+    return web.Response(text=LANDING_HTML, content_type='text/html')
+
+
+LANDING_HTML = """<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stolyk — бронювання столиків для вашого закладу</title>
+<meta name="description" content="Онлайн-бронювання столиків через Telegram. Клієнти бронюють за хвилину, ви керуєте всім із зручної панелі.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f6f4;--ink:#1c1a17;--ink2:#6f6a63;--ink3:#a39d94;
+  --line:#ece9e4;--accent:#e07020;--accent-dark:#b85510;--accent-soft:#fff3e6;
+  --green:#4a8c45;--green-soft:#f0f6ef;--green-line:#bcd9b8;
+  --r:20px;--r-sm:12px;
+}
+html{scroll-behavior:smooth}
+html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+a{color:inherit;text-decoration:none}
+img,svg{display:block}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line)}
+.nav-inner{max-width:1040px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Fraunces',serif;font-size:19px;font-weight:600}
+.logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.nav-cta{padding:10px 20px;background:var(--ink);color:#fff;border-radius:10px;font-size:13.5px;font-weight:600}
+.nav-cta:active{opacity:.85}
+
+/* HERO */
+.hero{padding:64px 0 40px;text-align:center}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-dark);background:var(--accent-soft);padding:8px 16px;border-radius:99px;font-weight:600;margin-bottom:24px}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(34px,6vw,58px);font-weight:400;line-height:1.06;letter-spacing:-.01em;margin-bottom:20px}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero p{font-size:16.5px;color:var(--ink2);max-width:520px;margin:0 auto 34px;line-height:1.6}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:56px}
+.btn-primary{padding:16px 30px;background:var(--accent);color:#fff;border-radius:13px;font-size:15px;font-weight:600}
+.btn-primary:active{transform:scale(.98)}
+.btn-ghost{padding:16px 30px;background:var(--bg2);color:var(--ink);border-radius:13px;font-size:15px;font-weight:600;border:1px solid var(--line)}
+
+/* PHONE MOCK */
+.mock-wrap{display:flex;justify-content:center;margin-bottom:20px}
+.mock{width:100%;max-width:300px;aspect-ratio:340/560;background:var(--ink);border-radius:32px;padding:10px;box-shadow:0 30px 70px rgba(28,26,23,.22)}
+.mock-screen{width:100%;height:100%;background:#fff;border-radius:24px;overflow:hidden;padding:18px 16px;display:flex;flex-direction:column;gap:10px}
+.mock-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mock-tbl{aspect-ratio:1;border-radius:11px;background:var(--green-soft);border:1.3px solid var(--green-line)}
+.mock-tbl.busy{background:#fbeeed;border-color:#e6c0bc}
+.mock-bar{height:34px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);margin-bottom:2px}
+.mock-btn{margin-top:auto;height:40px;border-radius:10px;background:var(--accent)}
+
+/* STATS STRIP */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:88px;border:1px solid var(--line)}
+.stat{background:#fff;padding:26px 20px;text-align:center}
+.stat .n{font-family:'Fraunces',serif;font-size:30px;font-weight:500;color:var(--accent-dark)}
+.stat .l{font-size:12.5px;color:var(--ink2);margin-top:4px}
+
+/* SECTION */
+.section{padding:70px 0}
+.section-head{text-align:center;max-width:560px;margin:0 auto 48px}
+.section-head .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:12px}
+.section-head h2{font-family:'Fraunces',serif;font-size:clamp(26px,4vw,36px);font-weight:400;line-height:1.15}
+.section-head p{font-size:15px;color:var(--ink2);margin-top:12px;line-height:1.6}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.step{position:relative;padding:28px 22px}
+.step .num{font-family:'Fraunces',serif;font-size:15px;color:var(--accent);font-weight:500;margin-bottom:14px}
+.step h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.step p{font-size:13.5px;color:var(--ink2);line-height:1.55}
+
+/* FEATURES */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature{background:var(--bg2);border-radius:var(--r);padding:26px 22px;border:1px solid var(--line)}
+.feature .ic{width:40px;height:40px;border-radius:11px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.feature .ic svg{width:19px;height:19px;color:var(--accent-dark)}
+.feature h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.feature p{font-size:13px;color:var(--ink2);line-height:1.55}
+
+/* CTA BAND */
+.cta-band{background:var(--ink);border-radius:28px;padding:56px 40px;text-align:center;position:relative;overflow:hidden;margin-bottom:70px}
+.cta-band::after{content:'';position:absolute;top:-30%;right:-15%;width:60%;height:70%;background:radial-gradient(circle,rgba(224,112,32,.35) 0%,transparent 70%)}
+.cta-band h2{position:relative;font-family:'Fraunces',serif;font-size:clamp(24px,4vw,34px);font-weight:400;color:#fff;margin-bottom:14px}
+.cta-band p{position:relative;color:rgba(255,255,255,.6);font-size:14.5px;margin-bottom:26px}
+.cta-band .btn-primary{position:relative}
+
+footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-size:12.5px;color:var(--ink3)}
+
+@media (max-width:720px){
+  .steps,.features{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr}
+  .stat{border-bottom:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="logo"><span class="dot"></span>Stolyk</div>
+    <a href="/register" class="nav-cta">Підключити заклад</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">🪑 Бронювання столиків</div>
+    <h1>Столик за <em>хвилину</em>,<br>без дзвінків і хаосу</h1>
+    <p>Клієнти бронюють столик прямо в Telegram — обирають місце на плані залу, дату й час. Ви бачите всі заявки в одній панелі.</p>
+    <div class="hero-actions">
+      <a href="/register" class="btn-primary">Підключити свій заклад</a>
+      <a href="#how" class="btn-ghost">Як це працює</a>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock">
+        <div class="mock-screen">
+          <div class="mock-bar"></div>
+          <div class="mock-row">
+            <div class="mock-tbl"></div><div class="mock-tbl busy"></div><div class="mock-tbl"></div>
+            <div class="mock-tbl"></div><div class="mock-tbl"></div><div class="mock-tbl busy"></div>
+            <div class="mock-tbl"></div><div class="mock-tbl"></div><div class="mock-tbl"></div>
+          </div>
+          <div class="mock-btn"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats">
+    <div class="stat"><div class="n">&lt;60с</div><div class="l">Середній час бронювання</div></div>
+    <div class="stat"><div class="n">24/7</div><div class="l">Приймає заявки без вихідних</div></div>
+    <div class="stat"><div class="n">0₴</div><div class="l">Без комісії з бронювань</div></div>
+  </div>
+
+  <section class="section" id="how">
+    <div class="section-head">
+      <div class="eyebrow">Як це працює</div>
+      <h2>Три кроки — і ваш заклад приймає бронювання</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <h3>Реєструєте заклад</h3>
+        <p>Вказуєте назву, столи та кількість місць. Займає п'ять хвилин, без технічних знань.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h3>Отримуєте бота</h3>
+        <p>Одразу генерується персональне посилання на Telegram-бота з вашим планом залу.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h3>Керуєте бронюваннями</h3>
+        <p>Заявки приходять у Telegram і в панель управління. Підтверджуєте в один клік.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div class="eyebrow">Можливості</div>
+      <h2>Все що потрібно закладу — в одному сервісі</h2>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div>
+        <h3>Живий план залу</h3>
+        <p>Клієнт бачить які столи вільні, а які зайняті — прямо зараз, без дзвінків адміну.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>Захищена панель</h3>
+        <p>Тільки ви маєте доступ до бронювань свого закладу — за особистим секретним ключем.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <h3>Миттєві сповіщення</h3>
+        <p>Кожна нова заявка одразу приходить вам у Telegram — з кнопками підтвердити чи скасувати.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11.8A8 8 0 0 0 4 10.2C4 17.5 12 22 12 22Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <h3>Без окремого сайту</h3>
+        <p>Все працює всередині Telegram — клієнту не потрібно нічого встановлювати чи реєструватись.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h3>Захист від спаму</h3>
+        <p>Обмеження на кількість активних бронювань і перевірку дублів — черга працює чесно.</p>
+      </div>
+      <div class="feature">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></div>
+        <h3>Готово за хвилини</h3>
+        <p>Не треба чекати розробників — заповнюєте форму й одразу отримуєте робочого бота.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="cta-band">
+      <h2>Готові прийняти перше бронювання?</h2>
+      <p>Підключення безкоштовне і займає кілька хвилин.</p>
+      <a href="/register" class="btn-primary">Підключити заклад</a>
+    </div>
+  </section>
+</div>
+
+<footer>© Stolyk · Бронювання столиків через Telegram</footer>
+</body>
+</html>"""
+
+
 REGISTER_HTML = """<!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -1003,6 +1221,7 @@ async def main():
 
     # Start HTTP server
     app = web.Application()
+    app.router.add_get('/', landing_page)
     app.router.add_get('/register', register_page)
     app.router.add_get('/api/check-slug', api_check_slug)
     app.router.add_post('/api/register', api_register)
