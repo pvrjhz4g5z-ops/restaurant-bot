@@ -153,6 +153,7 @@ html, body {
 
 #prebooking { display: none; min-height: 100vh; background: var(--bg); }
 .pb-wrap { padding: 20px 20px 40px; max-width: 480px; margin: 0 auto; }
+.pb-hint { font-size: 12px; color: var(--ink3); margin-bottom: 6px; }
 
 .modal-summary {
   display: flex; gap: 16px;
@@ -410,13 +411,18 @@ html, body {
     <span class="spacer"></span>
   </div>
   <div class="pb-wrap">
+    <div class="pb-hint">Оберіть, на який день бронюєте столик</div>
     <div class="field"><label>Дата</label><input type="date" id="pb-date"></div>
+
+    <div class="pb-hint">Скільки людей планує прийти</div>
     <div class="guests-row">
       <label>Кількість гостей</label>
       <button class="g-btn" onclick="changePbGuests(-1)">−</button>
       <span class="g-val" id="pb-g-val">2</span>
       <button class="g-btn" onclick="changePbGuests(1)">+</button>
     </div>
+
+    <div class="pb-hint">На яку годину вас чекати</div>
     <div class="section-label">Час</div>
     <div class="time-grid" id="pb-time-grid"></div>
     <button class="btn-confirm" id="pb-continue" onclick="goToFloor()" disabled>Продовжити</button>
@@ -797,6 +803,10 @@ function goToFloor() {
   document.getElementById('floorpage').style.display = 'block';
   renderFloorPlan(state.restaurantTables);
   loadTableStatuses(state.date, state.time);
+  const d = new Date(state.date + 'T00:00:00');
+  const dateStr = isNaN(d) ? state.date : d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
+  document.getElementById('tap-hint-text').textContent =
+    `Оберіть вільний столик на ${dateStr}, ${state.time}`;
 }
 
 function onTableClick(el) {
