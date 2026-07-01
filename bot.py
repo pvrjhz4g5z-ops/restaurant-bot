@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import (
     InlineKeyboardButton, ReplyKeyboardMarkup,
     KeyboardButton, WebAppInfo, Message
@@ -279,17 +279,26 @@ setInterval(()=>{if(ADMIN_KEY)loadBookings(false)},30000);
 
 
 @dp.message(CommandStart())
-async def start(message: Message):
+async def start(message: Message, command: CommandObject):
     await db.init_db()
+
+    slug = (command.args or "").strip() or db.DEFAULT_SLUG
+    restaurant = await db.get_restaurant_by_slug(slug)
+    if not restaurant or not restaurant.get("active", True):
+        restaurant = await db.get_restaurant_by_slug(db.DEFAULT_SLUG)
+        slug = db.DEFAULT_SLUG
+
+    webapp_url = f"{WEBAPP_URL}?r={slug}"
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(
             text="🪑 Забронювати столик",
-            web_app=WebAppInfo(url=WEBAPP_URL)
+            web_app=WebAppInfo(url=webapp_url)
         )]],
         resize_keyboard=True
     )
+    restaurant_name = restaurant["name"] if restaurant else "нашому ресторані"
     await message.answer(
-        "👋 Вітаємо в нашому ресторані!\n\n"
+        f"👋 Вітаємо в {restaurant_name}!\n\n"
         "Натисніть кнопку нижче, щоб обрати столик і зробити бронювання.",
         reply_markup=keyboard
     )
@@ -299,6 +308,7 @@ async def start(message: Message):
 async def handle_webapp_data(message: Message):
     try:
         data = json.loads(message.web_app_data.data)
+        slug = str(data.get("restaurantSlug", "") or db.DEFAULT_SLUG)[:60]
         table_name = str(data.get("tableName", "—"))[:50]
         date = str(data.get("date", "—"))[:20]
         time = str(data.get("time", "—"))[:10]
@@ -311,11 +321,17 @@ async def handle_webapp_data(message: Message):
         import re
         from datetime import datetime, date as date_cls
 
-        VALID_TABLES = {f"Стіл {i}" for i in range(1, 11)} | {"VIP-стіл"} | {f"Бар {i}" for i in range(1, 6)}
+        restaurant = await db.get_restaurant_by_slug(slug)
+        if not restaurant or not restaurant.get("active", True):
+            await message.answer("❌ Заклад не знайдено. Спробуйте ще раз через /start.")
+            return
+        restaurant_id = restaurant["id"]
+
+        VALID_TABLES = {t["name"] for t in restaurant.get("tables_config", [])}
         VALID_TIMES = {'12:00','12:30','13:00','13:30','14:00','14:30',
                        '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'}
 
-        # Стіл має бути зі списку
+        # Стіл має бути зі списку цього закладу
         if table_name not in VALID_TABLES:
             await message.answer("❌ Невірний столик.")
             return
@@ -350,14 +366,14 @@ async def handle_webapp_data(message: Message):
         if digit_count < 7:
             await message.answer("❌ Невірний номер телефону.")
             return
-        # Перевірка чи стіл вже зайнятий на цей час
-        taken = await db.get_booked_slots(date, table_name)
+        # Перевірка чи стіл вже зайнятий на цей час (в межах цього закладу)
+        taken = await db.get_booked_slots(date, table_name, restaurant_id=restaurant_id)
         if time in taken:
             await message.answer("❌ На жаль, цей столик вже заброньований на обраний час. Оберіть інший.")
             return
 
-        # Ліміт активних бронювань на одного користувача
-        all_bookings = await db.get_all_bookings()
+        # Ліміт активних бронювань на одного користувача (в межах цього закладу)
+        all_bookings = await db.get_all_bookings(restaurant_id=restaurant_id)
         active_count = sum(
             1 for b in all_bookings
             if b.get('user_id') == message.from_user.id and b.get('status') in ('pending', 'confirmed')
@@ -377,7 +393,8 @@ async def handle_webapp_data(message: Message):
             guests=guests,
             name=name,
             phone=phone,
-            note=note
+            note=note,
+            restaurant_id=restaurant_id
         )
 
         client_text = (
@@ -393,9 +410,11 @@ async def handle_webapp_data(message: Message):
         )
         await message.answer(client_text, parse_mode="Markdown")
 
-        if ADMIN_ID:
+        restaurant_admin_id = restaurant.get("admin_id") or ADMIN_ID
+        if restaurant_admin_id:
             admin_text = (
                 f"🔔 *Нове бронювання #{booking_id}*\n\n"
+                f"🏠 {restaurant['name']}\n"
                 f"🪑 {table_name} · {guests} ос.\n"
                 f"📅 {date} о {time}\n"
                 f"👤 {name} · {phone}\n"
@@ -411,7 +430,7 @@ async def handle_webapp_data(message: Message):
                 callback_data=f"cancel_{booking_id}"
             ))
             await bot.send_message(
-                ADMIN_ID, admin_text,
+                restaurant_admin_id, admin_text,
                 parse_mode="Markdown",
                 reply_markup=builder.as_markup()
             )
@@ -480,14 +499,37 @@ def check_rate_limit(ip):
     return True
 
 
+async def api_restaurant(request):
+    """Повертає інформацію про заклад і його столи для WebApp."""
+    slug = request.rel_url.query.get('r', '')[:60] or db.DEFAULT_SLUG
+    try:
+        restaurant = await db.get_restaurant_by_slug(slug)
+        if not restaurant or not restaurant.get("active", True):
+            restaurant = await db.get_restaurant_by_slug(db.DEFAULT_SLUG)
+        if not restaurant:
+            return web.json_response({"error": "not_found"}, status=404,
+                                     headers={"Access-Control-Allow-Origin": "*"})
+        return web.json_response({
+            "slug": restaurant["slug"],
+            "name": restaurant["name"],
+            "tables": restaurant.get("tables_config", [])
+        }, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception:
+        return web.json_response({"error": "failed"}, status=500,
+                                 headers={"Access-Control-Allow-Origin": "*"})
+
+
 async def api_tables(request):
     ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
     if not check_rate_limit(ip):
         return web.json_response({"booked_tables": [], "error": "rate_limited"}, status=429,
                                  headers={"Access-Control-Allow-Origin": "*"})
     date = request.rel_url.query.get('date', '')[:20]
+    slug = request.rel_url.query.get('r', '')[:60] or db.DEFAULT_SLUG
     try:
-        bookings = await db.get_all_bookings(date)
+        restaurant = await db.get_restaurant_by_slug(slug)
+        restaurant_id = restaurant["id"] if restaurant else None
+        bookings = await db.get_all_bookings(date, restaurant_id=restaurant_id)
         booked_tables = list(set(b['table_name'] for b in bookings if b['status'] != 'cancelled'))
         return web.json_response({"booked_tables": booked_tables}, headers={"Access-Control-Allow-Origin": "*"})
     except Exception:
@@ -501,8 +543,11 @@ async def api_slots(request):
                                  headers={"Access-Control-Allow-Origin": "*"})
     date = request.rel_url.query.get('date', '')[:20]
     table = request.rel_url.query.get('table', '')[:50]
+    slug = request.rel_url.query.get('r', '')[:60] or db.DEFAULT_SLUG
     try:
-        taken = await db.get_booked_slots(date, table)
+        restaurant = await db.get_restaurant_by_slug(slug)
+        restaurant_id = restaurant["id"] if restaurant else None
+        taken = await db.get_booked_slots(date, table, restaurant_id=restaurant_id)
         return web.json_response({"taken": taken}, headers={"Access-Control-Allow-Origin": "*"})
     except Exception:
         return web.json_response({"taken": []}, headers={"Access-Control-Allow-Origin": "*"})
@@ -510,10 +555,15 @@ async def api_slots(request):
 
 # ────────────────── ADMIN PANEL ──────────────────
 
-def _check_admin_key(request):
-    """Перевірка секретного ключа адміна (з query або заголовка)."""
+async def _get_restaurant_from_key(request):
+    """Знаходить заклад за секретним ключем адміна (з query або заголовка)."""
     key = request.rel_url.query.get('key', '') or request.headers.get('X-Admin-Key', '')
-    return ADMIN_KEY and key == ADMIN_KEY
+    if not key:
+        return None
+    restaurant = await db.get_restaurant_by_admin_key(key)
+    if restaurant and restaurant.get("active", True):
+        return restaurant
+    return None
 
 
 async def admin_page(request):
@@ -522,13 +572,13 @@ async def admin_page(request):
 
 
 async def admin_bookings(request):
-    """API: список усіх бронювань (тільки для адміна)."""
-    if not _check_admin_key(request):
+    """API: список бронювань для закладу, прив'язаного до ключа адміна."""
+    restaurant = await _get_restaurant_from_key(request)
+    if not restaurant:
         return web.json_response({"error": "unauthorized"}, status=401)
     date = request.rel_url.query.get('date', '')[:20] or None
     try:
-        bookings = await db.get_all_bookings(date)
-        # Сортуємо: спершу pending, потім за датою/часом
+        bookings = await db.get_all_bookings(date, restaurant_id=restaurant["id"])
         def to_str(b):
             return {
                 "id": b.get("id"),
@@ -542,14 +592,15 @@ async def admin_bookings(request):
                 "status": b.get("status") or "pending",
             }
         result = [to_str(b) for b in bookings]
-        return web.json_response({"bookings": result})
+        return web.json_response({"bookings": result, "restaurant_name": restaurant["name"]})
     except Exception:
         return web.json_response({"bookings": []})
 
 
 async def admin_action(request):
-    """API: змінити статус бронювання (confirm / cancel)."""
-    if not _check_admin_key(request):
+    """API: змінити статус бронювання (confirm / cancel) — тільки для свого закладу."""
+    restaurant = await _get_restaurant_from_key(request)
+    if not restaurant:
         return web.json_response({"error": "unauthorized"}, status=401)
     try:
         data = await request.json()
@@ -558,6 +609,12 @@ async def admin_action(request):
         status_map = {"confirm": "confirmed", "cancel": "cancelled"}
         if action not in status_map:
             return web.json_response({"error": "bad_action"}, status=400)
+
+        # Перевірка що бронювання належить саме цьому закладу
+        existing = await db.get_booking(booking_id)
+        if not existing or existing.get("restaurant_id") != restaurant["id"]:
+            return web.json_response({"error": "not_found"}, status=404)
+
         new_status = status_map[action]
         await db.update_status(booking_id, new_status)
 
@@ -588,6 +645,7 @@ async def main():
 
     # Start HTTP server
     app = web.Application()
+    app.router.add_get('/api/restaurant', api_restaurant)
     app.router.add_get('/api/tables', api_tables)
     app.router.add_get('/api/slots', api_slots)
     app.router.add_get('/admin', admin_page)
