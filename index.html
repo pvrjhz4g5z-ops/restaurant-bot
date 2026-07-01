@@ -149,18 +149,20 @@ html, body {
   font-weight: 500;
 }
 .tap-hint svg { width: 17px; height: 17px; flex-shrink: 0; animation: nudge 1.8s ease-in-out infinite; }
-
-.pre-guests {
-  display: flex; align-items: center; justify-content: space-between;
-  margin: 4px 16px 14px;
-  padding: 12px 16px;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-.pre-guests-label { font-size: 13px; color: var(--ink); font-weight: 500; }
-.pre-guests-ctrl { display: flex; align-items: center; gap: 14px; }
 @keyframes nudge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+#prebooking { display: none; min-height: 100vh; background: var(--bg); }
+.pb-wrap { padding: 20px 20px 40px; max-width: 480px; margin: 0 auto; }
+
+.modal-summary {
+  display: flex; gap: 16px;
+  padding: 12px 14px;
+  background: var(--bg2);
+  border-radius: var(--r-sm);
+  font-size: 13px; color: var(--ink2);
+  margin-top: 4px;
+}
+.modal-summary b { color: var(--ink); font-weight: 600; }
 
 .floor-wrap { padding: 12px 16px; }
 .floor-loading { text-align: center; padding: 60px 20px; color: var(--ink3); font-size: 13px; }
@@ -393,14 +395,38 @@ html, body {
       <div class="landing-name" id="landing-name-text">Ресторан</div>
     </div>
     <div class="landing-tagline">Забронюйте<br>свій столик</div>
-    <button class="btn-book" onclick="showFloor()">Забронювати</button>
+    <button class="btn-book" onclick="showPrebooking()">Забронювати</button>
+  </div>
+</div>
+
+<!-- PREBOOKING: дата, час, гості -->
+<div id="prebooking">
+  <div class="floor-header">
+    <button class="back-btn" onclick="showLanding()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      Назад
+    </button>
+    <span class="floor-title">Бронювання</span>
+    <span class="spacer"></span>
+  </div>
+  <div class="pb-wrap">
+    <div class="field"><label>Дата</label><input type="date" id="pb-date"></div>
+    <div class="guests-row">
+      <label>Кількість гостей</label>
+      <button class="g-btn" onclick="changePbGuests(-1)">−</button>
+      <span class="g-val" id="pb-g-val">2</span>
+      <button class="g-btn" onclick="changePbGuests(1)">+</button>
+    </div>
+    <div class="section-label">Час</div>
+    <div class="time-grid" id="pb-time-grid"></div>
+    <button class="btn-confirm" id="pb-continue" onclick="goToFloor()" disabled>Продовжити</button>
   </div>
 </div>
 
 <!-- FLOOR -->
 <div id="floorpage">
   <div class="floor-header">
-    <button class="back-btn" onclick="showLanding()">
+    <button class="back-btn" onclick="showPrebooking()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
       Назад
     </button>
@@ -410,16 +436,7 @@ html, body {
 
   <div class="tap-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11.5V6a2 2 0 0 1 4 0v5.5M13 8.5a2 2 0 0 1 4 0V13M9 9.5a2 2 0 0 0-4 0v3.5a7 7 0 0 0 7 7h1a6 6 0 0 0 6-6V10a2 2 0 0 0-4 0"/></svg>
-    Торкніться вільного столика
-  </div>
-
-  <div class="pre-guests">
-    <span class="pre-guests-label">Кількість гостей</span>
-    <div class="pre-guests-ctrl">
-      <button class="g-btn" onclick="changePreGuests(-1)">−</button>
-      <span class="g-val" id="pre-g-val">2</span>
-      <button class="g-btn" onclick="changePreGuests(1)">+</button>
-    </div>
+    <span id="tap-hint-text">Торкніться вільного столика</span>
   </div>
 
   <div class="floor-wrap" id="floor-wrap">
@@ -431,7 +448,7 @@ html, body {
   </div>
 </div>
 
-<!-- MODAL -->
+<!-- MODAL: тільки контактні дані -->
 <div id="modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -441,16 +458,7 @@ html, body {
     <div class="modal-eyebrow">Бронювання</div>
     <div class="modal-title" id="modal-title">Стіл</div>
     <div class="modal-sub" id="modal-sub">2 місця</div>
-
-    <div class="field"><label>Дата</label><input type="date" id="pick-date"></div>
-    <div class="guests-row">
-      <label>Кількість гостей</label>
-      <button class="g-btn" onclick="changeGuests(-1)">−</button>
-      <span class="g-val" id="g-val">2</span>
-      <button class="g-btn" onclick="changeGuests(1)">+</button>
-    </div>
-    <div class="section-label">Час</div>
-    <div class="time-grid" id="time-grid"></div>
+    <div class="modal-summary" id="modal-summary"></div>
     <div class="divider"></div>
     <div class="field"><label>Ім'я</label><input type="text" id="f-name" placeholder="Як до вас звертатися" oninput="checkForm()"></div>
     <div class="field">
@@ -492,11 +500,11 @@ if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff'); tg.setBackgroun
 const TIMES = ['12:00','12:30','13:00','13:30','14:00','14:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'];
 const API_BASE = 'https://web-production-aff79.up.railway.app';
 const RESTAURANT_SLUG = new URLSearchParams(window.location.search).get('r') || 'default';
-const state = { tableId: null, tableName: '', tableSeats: 0, date: '', time: '', guests: 2, preGuests: 2, restaurantTables: [] };
+const state = { tableId: null, tableName: '', tableSeats: 0, date: '', time: '', guests: 2, restaurantTables: [] };
 
-function changePreGuests(d) {
-  state.preGuests = Math.max(1, Math.min(20, (state.preGuests || 2) + d));
-  document.getElementById('pre-g-val').textContent = state.preGuests;
+function changePbGuests(d) {
+  state.guests = Math.max(1, Math.min(20, (state.guests || 2) + d));
+  document.getElementById('pb-g-val').textContent = state.guests;
 }
 
 async function loadRestaurant() {
@@ -507,7 +515,6 @@ async function loadRestaurant() {
     state.restaurantTables = data.tables || [];
     document.getElementById('landing-name-text').textContent = data.name || 'Ресторан';
     document.getElementById('floor-title-text').textContent = data.name || 'Зал';
-    renderFloorPlan(state.restaurantTables);
   } catch (e) {
     document.getElementById('floor-wrap').innerHTML = '<div class="floor-loading">Не вдалося завантажити зал. Спробуйте пізніше.</div>';
   }
@@ -523,13 +530,11 @@ function renderFloorPlan(tables) {
   let svgParts = [];
   const barH = barSeats.length > 0 ? 70 : 0;
 
-  // Розрахунок висоти залу наперед
   const regRows = Math.ceil(regularTables.length / 3);
   const totalH = 20 + (barH ? barH + 20 : 0) + regRows * 100 + bigTables.length * 86 + 40;
 
   svgParts.push(`<rect x="8" y="8" width="${W-16}" height="${totalH-8}" rx="16" fill="#ffffff" stroke="#ece9e4" stroke-width="1.5"/>`);
 
-  // Вікна вздовж бокових стін
   const windowH = 26;
   const windowCount = Math.max(2, Math.floor((totalH - 60) / 90));
   const windowGap = (totalH - 60) / windowCount;
@@ -699,9 +704,9 @@ if (window.visualViewport) {
   });
 }
 
-async function loadTableStatuses(date) {
+async function loadTableStatuses(date, time) {
   try {
-    const res = await fetch(`${API_BASE}/api/tables?date=${date}&r=${encodeURIComponent(RESTAURANT_SLUG)}`);
+    const res = await fetch(`${API_BASE}/api/tables?date=${date}&time=${encodeURIComponent(time)}&r=${encodeURIComponent(RESTAURANT_SLUG)}`);
     if (!res.ok) { applyPulse(); return; }
     const data = await res.json();
     const booked = data.booked_tables || [];
@@ -733,35 +738,86 @@ function applyPulse() {
   }
 }
 
-function showFloor() {
+/* ── ЕКРАН 1: дата / час / гості ── */
+function showPrebooking() {
   document.getElementById('landing').style.display = 'none';
-  document.getElementById('floorpage').style.display = 'block';
+  document.getElementById('floorpage').style.display = 'none';
+  document.getElementById('prebooking').style.display = 'block';
+
   const today = new Date();
   const pad = n => String(n).padStart(2,'0');
-  loadTableStatuses(`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`);
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  const di = document.getElementById('pb-date');
+  di.min = todayStr;
+  if (!state.date) { di.value = todayStr; state.date = todayStr; }
+  document.getElementById('pb-g-val').textContent = state.guests;
+
+  buildPbTimes();
+  checkPbForm();
+}
+
+document.getElementById('pb-date').addEventListener('change', e => {
+  state.date = e.target.value;
+  checkPbForm();
+});
+
+function buildPbTimes() {
+  const grid = document.getElementById('pb-time-grid');
+  grid.innerHTML = '';
+  TIMES.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'time-btn' + (t === state.time ? ' sel' : '');
+    b.textContent = t;
+    b.onclick = () => selectPbTime(t, b);
+    grid.appendChild(b);
+  });
+}
+
+function selectPbTime(t, el) {
+  document.querySelectorAll('#pb-time-grid .time-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  state.time = t;
+  checkPbForm();
+}
+
+function checkPbForm() {
+  const ok = state.date && state.time;
+  document.getElementById('pb-continue').disabled = !ok;
 }
 
 function showLanding() {
   document.getElementById('floorpage').style.display = 'none';
+  document.getElementById('prebooking').style.display = 'none';
   document.getElementById('landing').style.display = 'flex';
+}
+
+/* ── ЕКРАН 2: план залу ── */
+function goToFloor() {
+  document.getElementById('prebooking').style.display = 'none';
+  document.getElementById('floorpage').style.display = 'block';
+  renderFloorPlan(state.restaurantTables);
+  loadTableStatuses(state.date, state.time);
 }
 
 function onTableClick(el) {
   if (el.classList.contains('booked')) return;
+  const seats = parseInt(el.dataset.seats);
+  if (state.guests > seats) {
+    alert(`Цей стіл розрахований на ${seats} ${seatWord(seats)}, а гостей — ${state.guests}. Оберіть інший стіл.`);
+    return;
+  }
   state.tableId = el.dataset.id;
   state.tableName = el.dataset.name;
-  state.tableSeats = parseInt(el.dataset.seats);
-  state.guests = Math.min(state.preGuests || 2, state.tableSeats);
+  state.tableSeats = seats;
+
   document.getElementById('modal-title').innerHTML = state.tableName.replace(/(\d+)/g, '<span class="num">$1</span>');
   document.getElementById('modal-sub').textContent = state.tableSeats + ' ' + seatWord(state.tableSeats);
-  document.getElementById('g-val').textContent = state.guests;
-  const today = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-  const di = document.getElementById('pick-date');
-  di.min = todayStr; di.value = todayStr;
-  state.date = todayStr;
-  loadTimeSlots(todayStr, state.tableName);
+
+  const d = new Date(state.date + 'T00:00:00');
+  const dateStr = isNaN(d) ? state.date : d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
+  document.getElementById('modal-summary').innerHTML =
+    `<span>📅 <b>${dateStr}</b></span><span>🕐 <b>${state.time}</b></span><span>👥 <b>${state.guests}</b></span>`;
+
   document.getElementById('f-name').value = '';
   document.getElementById('f-phone').value = '';
   document.getElementById('f-note').value = '';
@@ -770,50 +826,12 @@ function onTableClick(el) {
   document.querySelector('.modal-sheet').scrollTop = 0;
 }
 
-async function loadTimeSlots(date, tableName) {
-  let taken = [];
-  try {
-    const res = await fetch(`${API_BASE}/api/slots?date=${date}&table=${encodeURIComponent(tableName)}&r=${encodeURIComponent(RESTAURANT_SLUG)}`);
-    if (res.ok) { const d = await res.json(); taken = d.taken || []; }
-  } catch(e) {}
-  buildTimes(taken);
-}
-
-document.getElementById('pick-date').addEventListener('change', e => {
-  state.date = e.target.value;
-  state.time = '';
-  loadTimeSlots(state.date, state.tableName);
-  checkForm();
-});
-
-function buildTimes(taken) {
-  const grid = document.getElementById('time-grid');
-  grid.innerHTML = '';
-  TIMES.forEach(t => {
-    const b = document.createElement('button');
-    b.className = 'time-btn' + (taken.includes(t) ? ' taken' : '');
-    b.textContent = t;
-    if (!taken.includes(t)) b.onclick = () => selectTime(t, b);
-    grid.appendChild(b);
-  });
-  state.time = '';
-}
-
-function selectTime(t, el) {
-  document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('sel'));
-  el.classList.add('sel');
-  state.time = t;
-  checkForm();
-}
-
 function changeGuests(d) {
-  state.guests = Math.max(1, Math.min(state.tableSeats, state.guests + d));
-  document.getElementById('g-val').textContent = state.guests;
+  // лишено для сумісності, більше не використовується в UI
 }
 
 function checkForm() {
-  const ok = state.time && state.date &&
-    document.getElementById('f-name').value.trim() &&
+  const ok = document.getElementById('f-name').value.trim() &&
     document.getElementById('f-phone').value.trim();
   document.getElementById('btn-confirm').disabled = !ok;
 }
@@ -830,6 +848,7 @@ function submitBooking() {
 function showSuccess(data) {
   document.getElementById('modal').classList.remove('open');
   document.getElementById('floorpage').style.display = 'none';
+  document.getElementById('prebooking').style.display = 'none';
   document.getElementById('landing').style.display = 'none';
   const dateStr = new Date(data.date).toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
   document.getElementById('success-details').innerHTML = `
