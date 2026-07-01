@@ -639,12 +639,373 @@ async def admin_action(request):
         return web.json_response({"error": "failed"}, status=500)
 
 
+# ────────────────── РЕЄСТРАЦІЯ НОВОГО ЗАКЛАДУ ──────────────────
+
+import re as _re
+import secrets
+
+RESERVED_SLUGS = {"default", "admin", "api", "register", "www", "app", "bot", "static"}
+
+_bot_username = None
+
+
+async def get_bot_username():
+    global _bot_username
+    if _bot_username is None:
+        me = await bot.get_me()
+        _bot_username = me.username
+    return _bot_username
+
+
+def _slugify(text):
+    text = text.lower().strip()
+    text = _re.sub(r'[^a-z0-9а-яіїєґ\s_-]', '', text)
+    text = _re.sub(r'[\s_]+', '_', text)
+    return text[:40]
+
+
+async def register_page(request):
+    return web.Response(text=REGISTER_HTML, content_type='text/html')
+
+
+async def api_check_slug(request):
+    slug = request.rel_url.query.get('slug', '')[:60]
+    slug = _slugify(slug)
+    valid = bool(_re.match(r'^[a-z0-9а-яіїєґ_-]{3,40}$', slug)) and slug not in RESERVED_SLUGS
+    available = valid
+    if valid:
+        existing = await db.get_restaurant_by_slug(slug)
+        available = existing is None
+    return web.json_response({"slug": slug, "valid": valid, "available": available})
+
+
+async def api_register(request):
+    ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
+    if not check_rate_limit(ip):
+        return web.json_response({"error": "rate_limited"}, status=429)
+    try:
+        data = await request.json()
+        name = str(data.get("name", "")).strip()[:80]
+        slug = _slugify(str(data.get("slug", "")))
+        admin_id_raw = str(data.get("adminId", "")).strip()
+        tables = data.get("tables", [])
+
+        if not name or len(name) < 2:
+            return web.json_response({"error": "Вкажіть назву закладу (мінімум 2 символи)."}, status=400)
+        if not _re.match(r'^[a-z0-9а-яіїєґ_-]{3,40}$', slug) or slug in RESERVED_SLUGS:
+            return web.json_response({"error": "Невірне посилання. Використайте 3-40 символів: літери, цифри, дефіс."}, status=400)
+        existing = await db.get_restaurant_by_slug(slug)
+        if existing:
+            return web.json_response({"error": "Це посилання вже зайняте. Оберіть інше."}, status=400)
+        try:
+            admin_id = int(admin_id_raw)
+            if admin_id <= 0:
+                raise ValueError()
+        except ValueError:
+            return web.json_response({"error": "Невірний Telegram ID власника."}, status=400)
+
+        if not isinstance(tables, list) or len(tables) == 0:
+            return web.json_response({"error": "Додайте хоча б один стіл."}, status=400)
+        if len(tables) > 60:
+            return web.json_response({"error": "Забагато столів (максимум 60)."}, status=400)
+
+        clean_tables = []
+        for i, t in enumerate(tables):
+            tname = str(t.get("name", "")).strip()[:40]
+            try:
+                seats = int(t.get("seats", 0))
+            except (ValueError, TypeError):
+                seats = 0
+            if not tname or seats < 1 or seats > 30:
+                return web.json_response({"error": f"Перевірте стіл №{i+1}: назва і кількість місць (1-30)."}, status=400)
+            clean_tables.append({"id": str(i + 1), "name": tname, "seats": seats})
+
+        admin_key = secrets.token_urlsafe(16)
+        restaurant_id = await db.create_restaurant(slug, name, admin_id, admin_key, clean_tables)
+
+        username = await get_bot_username()
+        bot_link = f"https://t.me/{username}?start={slug}"
+        # адмін-панель хоститься на цьому ж боті (Railway домен)
+        base_api = request.url.scheme + "://" + request.url.host
+        if request.url.port and request.url.port not in (80, 443):
+            base_api += f":{request.url.port}"
+        admin_url = f"{base_api}/admin?key={admin_key}"
+
+        return web.json_response({
+            "ok": True,
+            "restaurant_id": restaurant_id,
+            "slug": slug,
+            "bot_link": bot_link,
+            "admin_url": admin_url,
+            "admin_key": admin_key
+        })
+    except Exception as e:
+        logging.error(f"Register error: {e}")
+        return web.json_response({"error": "Щось пішло не так. Спробуйте ще раз."}, status=500)
+
+
+REGISTER_HTML = """<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Реєстрація закладу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f4;--card:#fff;--ink:#1c1a17;--ink2:#6f6a63;--ink3:#a39d94;
+  --line:#ece9e4;--accent:#e07020;--accent-dark:#b85510;--accent-soft:#fff3e6;
+  --green:#4a8c45;--green-soft:#f0f6ef;--green-line:#bcd9b8;
+  --red:#b8463a;--red-soft:#fbeeed;--red-line:#e6c0bc;
+  --r:16px;--r-sm:10px;
+}
+html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding:34px 18px 60px}
+.head{text-align:center;margin-bottom:28px}
+.head .eyebrow{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:8px}
+.head h1{font-family:'Fraunces',serif;font-size:30px;font-weight:500}
+.head p{font-size:13.5px;color:var(--ink2);margin-top:8px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;margin-bottom:16px;box-shadow:0 1px 2px rgba(28,26,23,.04)}
+.card h2{font-family:'Fraunces',serif;font-size:18px;font-weight:500;margin-bottom:4px}
+.card .hint{font-size:12.5px;color:var(--ink2);margin-bottom:16px}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--ink2);font-weight:500;margin-bottom:7px}
+.field input{width:100%;padding:12px 14px;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-sm);font-family:'Inter';font-size:15px;outline:none;color:var(--ink)}
+.field input:focus{border-color:var(--accent);background:#fff}
+.slug-preview{font-size:12.5px;margin-top:7px;padding:8px 11px;border-radius:8px;background:var(--bg);color:var(--ink2)}
+.slug-preview.ok{background:var(--green-soft);color:var(--green)}
+.slug-preview.bad{background:var(--red-soft);color:var(--red)}
+
+.tbl-row{display:grid;grid-template-columns:1fr 90px 34px;gap:8px;margin-bottom:8px;align-items:center}
+.tbl-row input{padding:10px 12px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;font-family:'Inter';font-size:14px;outline:none;color:var(--ink)}
+.tbl-row input:focus{border-color:var(--accent);background:#fff}
+.tbl-del{width:34px;height:34px;border-radius:9px;background:var(--red-soft);color:var(--red);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.tbl-add{width:100%;padding:11px;border-radius:9px;border:1.5px dashed var(--line);background:transparent;color:var(--ink2);font-family:'Inter';font-size:13.5px;font-weight:500;cursor:pointer;margin-top:4px}
+.tbl-add:hover{border-color:var(--accent);color:var(--accent)}
+
+.btn-submit{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Inter';font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+.btn-submit:disabled{opacity:.4;cursor:default}
+.err{background:var(--red-soft);color:var(--red);border:1px solid var(--red-line);border-radius:10px;padding:12px 14px;font-size:13.5px;margin-bottom:16px;display:none}
+.err.show{display:block}
+
+/* success */
+#success{display:none}
+.success-mark{width:56px;height:56px;border-radius:50%;background:var(--green-soft);border:1.5px solid var(--green-line);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.success-mark svg{width:24px;height:24px;color:var(--green)}
+.result-row{margin-bottom:16px}
+.result-row label{display:block;font-size:12px;color:var(--ink2);font-weight:500;margin-bottom:7px}
+.result-box{display:flex;gap:8px}
+.result-box input{flex:1;padding:12px 14px;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-sm);font-family:'Inter';font-size:13.5px;outline:none;color:var(--ink)}
+.copy-btn{padding:0 16px;border-radius:var(--r-sm);border:1.5px solid var(--line);background:#fff;color:var(--ink);font-family:'Inter';font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.copy-btn:active{background:var(--accent-soft);border-color:var(--accent)}
+.warn{background:#fdf6e8;border:1px solid #ecd9a8;color:#95681a;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow">Бронювання столиків</div>
+    <h1>Підключіть свій заклад</h1>
+    <p>Заповніть форму — і одразу отримаєте готового бота та панель управління.</p>
+  </div>
+
+  <div id="form">
+    <div class="err" id="err-box"></div>
+
+    <div class="card">
+      <h2>Заклад</h2>
+      <div class="hint">Основна інформація про ваш ресторан чи кафе.</div>
+      <div class="field">
+        <label>Назва закладу</label>
+        <input type="text" id="f-name" placeholder="Наприклад: Мама Піца" oninput="onNameInput()">
+      </div>
+      <div class="field">
+        <label>Унікальне посилання</label>
+        <input type="text" id="f-slug" placeholder="mama_pizza" oninput="onSlugInput()">
+        <div class="slug-preview" id="slug-preview">t.me/бот?start=...</div>
+      </div>
+      <div class="field">
+        <label>Ваш Telegram ID (адміна)</label>
+        <input type="text" id="f-admin" placeholder="Напишіть @userinfobot щоб дізнатись">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Столи</h2>
+      <div class="hint">Додайте всі столи вашого залу: назву і кількість місць.</div>
+      <div id="tables-list"></div>
+      <button class="tbl-add" onclick="addTableRow()">+ Додати стіл</button>
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="submitRegister()">Створити бота</button>
+  </div>
+
+  <div id="success">
+    <div class="success-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="head"><h1 style="font-size:24px">Готово!</h1><p>Заклад підключено. Збережіть дані нижче.</p></div>
+
+    <div class="card">
+      <div class="result-row">
+        <label>Посилання для клієнтів (бот бронювання)</label>
+        <div class="result-box"><input type="text" id="r-bot" readonly><button class="copy-btn" onclick="copyField('r-bot')">Копіювати</button></div>
+      </div>
+      <div class="result-row">
+        <label>Панель управління бронюваннями</label>
+        <div class="result-box"><input type="text" id="r-admin" readonly><button class="copy-btn" onclick="copyField('r-admin')">Копіювати</button></div>
+      </div>
+      <div class="result-row" style="margin-bottom:0">
+        <label>Секретний ключ доступу</label>
+        <div class="result-box"><input type="text" id="r-key" readonly><button class="copy-btn" onclick="copyField('r-key')">Копіювати</button></div>
+        <div class="warn">⚠️ Збережіть цей ключ — він більше ніде не показуватиметься. Він потрібен для входу в панель управління.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let tableCount = 0;
+
+function addTableRow(name, seats) {
+  tableCount++;
+  const id = 'tr' + tableCount;
+  const wrap = document.getElementById('tables-list');
+  const row = document.createElement('div');
+  row.className = 'tbl-row';
+  row.id = id;
+  row.innerHTML = `
+    <input type="text" placeholder="Стіл ${tableCount}" value="${name || ''}">
+    <input type="number" placeholder="Місць" min="1" max="30" value="${seats || ''}">
+    <button class="tbl-del" onclick="document.getElementById('${id}').remove()">×</button>
+  `;
+  wrap.appendChild(row);
+}
+// стартові 4 столи для прикладу
+addTableRow('Стіл 1', 2);
+addTableRow('Стіл 2', 4);
+addTableRow('Стіл 3', 2);
+addTableRow('VIP-стіл', 6);
+
+function slugify(s) {
+  return s.toLowerCase().trim()
+    .replace(/[^a-z0-9а-яіїєґ\\s_-]/g, '')
+    .replace(/[\\s_]+/g, '_')
+    .slice(0, 40);
+}
+
+let slugManuallyEdited = false;
+function onNameInput() {
+  if (!slugManuallyEdited) {
+    document.getElementById('f-slug').value = slugify(document.getElementById('f-name').value);
+    checkSlug();
+  }
+}
+function onSlugInput() {
+  slugManuallyEdited = true;
+  checkSlug();
+}
+
+let slugTimer = null;
+function checkSlug() {
+  clearTimeout(slugTimer);
+  const raw = document.getElementById('f-slug').value;
+  const preview = document.getElementById('slug-preview');
+  if (!raw.trim()) { preview.className = 'slug-preview'; preview.textContent = 't.me/бот?start=...'; return; }
+  slugTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/check-slug?slug=' + encodeURIComponent(raw));
+      const d = await res.json();
+      if (d.available) {
+        preview.className = 'slug-preview ok';
+        preview.textContent = '✓ t.me/бот?start=' + d.slug;
+      } else {
+        preview.className = 'slug-preview bad';
+        preview.textContent = d.valid ? 'Це посилання вже зайняте' : 'Некоректне посилання';
+      }
+    } catch(e) {}
+  }, 400);
+}
+
+function showErr(msg) {
+  const box = document.getElementById('err-box');
+  box.textContent = msg;
+  box.classList.add('show');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+async function submitRegister() {
+  const btn = document.getElementById('btn-submit');
+  document.getElementById('err-box').classList.remove('show');
+
+  const name = document.getElementById('f-name').value.trim();
+  const slug = document.getElementById('f-slug').value.trim();
+  const adminId = document.getElementById('f-admin').value.trim();
+  const rows = document.querySelectorAll('.tbl-row');
+  const tables = Array.from(rows).map(r => {
+    const inputs = r.querySelectorAll('input');
+    return { name: inputs[0].value.trim(), seats: parseInt(inputs[1].value) };
+  });
+
+  if (!name) return showErr('Вкажіть назву закладу.');
+  if (!slug) return showErr('Вкажіть посилання закладу.');
+  if (!adminId) return showErr('Вкажіть свій Telegram ID.');
+  if (tables.length === 0) return showErr('Додайте хоча б один стіл.');
+
+  btn.disabled = true;
+  btn.textContent = 'Створюємо…';
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name, slug, adminId, tables })
+    });
+    const d = await res.json();
+    if (!res.ok || d.error) {
+      showErr(d.error || 'Щось пішло не так.');
+      btn.disabled = false;
+      btn.textContent = 'Створити бота';
+      return;
+    }
+    document.getElementById('r-bot').value = d.bot_link;
+    document.getElementById('r-admin').value = d.admin_url;
+    document.getElementById('r-key').value = d.admin_key;
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+  } catch(e) {
+    showErr('Помилка з\\'єднання. Спробуйте ще раз.');
+    btn.disabled = false;
+    btn.textContent = 'Створити бота';
+  }
+}
+
+function copyField(id) {
+  const el = document.getElementById(id);
+  el.select();
+  el.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(el.value).catch(() => document.execCommand('copy'));
+}
+</script>
+</body>
+</html>"""
+
+
 async def main():
     await db.init_db()
     await bot.delete_webhook(drop_pending_updates=True)
 
     # Start HTTP server
     app = web.Application()
+    app.router.add_get('/register', register_page)
+    app.router.add_get('/api/check-slug', api_check_slug)
+    app.router.add_post('/api/register', api_register)
     app.router.add_get('/api/restaurant', api_restaurant)
     app.router.add_get('/api/tables', api_tables)
     app.router.add_get('/api/slots', api_slots)
