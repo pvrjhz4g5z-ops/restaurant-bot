@@ -775,8 +775,11 @@ img,svg{display:block}
 /* NAV */
 nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line)}
 .nav-inner{max-width:1040px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:9px;font-family:'Fraunces',serif;font-size:19px;font-weight:600}
-.logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-size:19px;font-weight:600}
+.logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(160deg,#e07020 0%,#b85510 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:17px;height:17px;color:#fff}
+.footer-mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(160deg,#e07020 0%,#b85510 100%);display:inline-flex;align-items:center;justify-content:center;vertical-align:-6px;margin-right:6px}
+.footer-mark svg{width:12px;height:12px;color:#fff}
 .nav-cta{padding:10px 20px;background:var(--ink);color:#fff;border-radius:10px;font-size:13.5px;font-weight:600}
 .nav-cta:active{opacity:.85}
 
@@ -849,14 +852,19 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
 
 <nav>
   <div class="nav-inner">
-    <div class="logo"><span class="dot"></span>Stolyk</div>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3" r="1.7"/><circle cx="21" cy="12" r="1.7"/><circle cx="12" cy="21" r="1.7"/><circle cx="3" cy="12" r="1.7"/></svg>
+      </div>
+      Stolyk
+    </div>
     <a href="/register" class="nav-cta">Підключити заклад</a>
   </div>
 </nav>
 
 <div class="wrap">
   <section class="hero">
-    <div class="eyebrow">🪑 Бронювання столиків</div>
+    <div class="eyebrow"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3" r="1.7"/><circle cx="21" cy="12" r="1.7"/><circle cx="12" cy="21" r="1.7"/><circle cx="3" cy="12" r="1.7"/></svg> Бронювання столиків</div>
     <h1>Столик за <em>хвилину</em>,<br>без дзвінків і хаосу</h1>
     <p>Клієнти бронюють столик прямо в Telegram — обирають місце на плані залу, дату й час. Ви бачите всі заявки в одній панелі.</p>
     <div class="hero-actions">
@@ -957,7 +965,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
   </section>
 </div>
 
-<footer>© Stolyk · Бронювання столиків через Telegram</footer>
+<footer><span class="footer-mark"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3" r="1.7"/><circle cx="21" cy="12" r="1.7"/><circle cx="12" cy="21" r="1.7"/><circle cx="3" cy="12" r="1.7"/></svg></span>© Stolyk · Бронювання столиків через Telegram</footer>
 </body>
 </html>"""
 
