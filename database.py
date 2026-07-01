@@ -1,19 +1,43 @@
 import aiopg
 import os
+import json
+
 _pool = None
 DB_URL = os.getenv("DATABASE_URL")
+
+DEFAULT_SLUG = "default"
+
+
 async def get_pool():
     global _pool
     if _pool is None:
         _pool = await aiopg.create_pool(DB_URL)
     return _pool
+
+
 async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
+            # ── Таблиця ресторанів (мультитенант) ──
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS restaurants (
+                    id SERIAL PRIMARY KEY,
+                    slug TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    admin_id BIGINT,
+                    admin_key TEXT UNIQUE,
+                    tables_config TEXT,
+                    active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ── Таблиця бронювань ──
             await cur.execute("""
                 CREATE TABLE IF NOT EXISTS bookings (
                     id SERIAL PRIMARY KEY,
+                    restaurant_id INTEGER,
                     user_id BIGINT,
                     table_name TEXT,
                     date TEXT,
@@ -26,32 +50,160 @@ async def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-async def save_booking(user_id, table_name, date, time, guests, name, phone, note):
+
+            # Якщо bookings існувала раніше без restaurant_id — додаємо колонку
+            await cur.execute("""
+                ALTER TABLE bookings ADD COLUMN IF NOT EXISTS restaurant_id INTEGER
+            """)
+
+            # ── Ресторан за замовчуванням (щоб поточний бот не зламався) ──
+            await cur.execute("SELECT id FROM restaurants WHERE slug = %s", (DEFAULT_SLUG,))
+            row = await cur.fetchone()
+            if not row:
+                default_tables = json.dumps([
+                    {"id": str(i), "name": f"Стіл {i}", "seats": 2 if i in (1,2,3,7,9) else 4}
+                    for i in range(1, 10)
+                ] + [
+                    {"id": "10", "name": "VIP-стіл", "seats": 6}
+                ] + [
+                    {"id": f"b{i}", "name": f"Бар {i}", "seats": 1} for i in range(1, 6)
+                ])
+                admin_id = int(os.getenv("ADMIN_ID", "0"))
+                admin_key = os.getenv("ADMIN_KEY", "")
+                await cur.execute(
+                    """INSERT INTO restaurants (slug, name, admin_id, admin_key, tables_config)
+                       VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                    (DEFAULT_SLUG, "Мій ресторан", admin_id, admin_key, default_tables)
+                )
+                row = await cur.fetchone()
+
+            default_id = row[0]
+
+            # Прив'язуємо старі бронювання (без restaurant_id) до дефолтного ресторану
+            await cur.execute(
+                "UPDATE bookings SET restaurant_id = %s WHERE restaurant_id IS NULL",
+                (default_id,)
+            )
+
+
+# ────────────────── РЕСТОРАНИ ──────────────────
+
+async def create_restaurant(slug, name, admin_id, admin_key, tables_config):
+    """Створює новий заклад. tables_config — список dict-ів [{id,name,seats}, ...]."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """INSERT INTO bookings
-                   (user_id, table_name, date, time, guests, name, phone, note)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                   RETURNING id""",
-                (user_id, table_name, date, time, guests, name, phone, note)
+                """INSERT INTO restaurants (slug, name, admin_id, admin_key, tables_config)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                (slug, name, admin_id, admin_key, json.dumps(tables_config))
             )
             row = await cur.fetchone()
             return row[0]
+
+
+async def get_restaurant_by_slug(slug):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants WHERE slug = %s",
+                (slug,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+            return _restaurant_row_to_dict(row)
+
+
+async def get_restaurant_by_admin_key(key):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants WHERE admin_key = %s",
+                (key,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+            return _restaurant_row_to_dict(row)
+
+
+async def get_restaurant_by_id(restaurant_id):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants WHERE id = %s",
+                (restaurant_id,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+            return _restaurant_row_to_dict(row)
+
+
+async def list_restaurants():
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants ORDER BY id"
+            )
+            rows = await cur.fetchall()
+            return [_restaurant_row_to_dict(r) for r in rows]
+
+
+def _restaurant_row_to_dict(row):
+    keys = ['id', 'slug', 'name', 'admin_id', 'admin_key', 'tables_config', 'active']
+    d = dict(zip(keys, row))
+    try:
+        d['tables_config'] = json.loads(d['tables_config']) if d['tables_config'] else []
+    except (json.JSONDecodeError, TypeError):
+        d['tables_config'] = []
+    return d
+
+
+async def get_default_restaurant_id():
+    r = await get_restaurant_by_slug(DEFAULT_SLUG)
+    return r['id'] if r else None
+
+
+# ────────────────── БРОНЮВАННЯ ──────────────────
+
+async def save_booking(user_id, table_name, date, time, guests, name, phone, note, restaurant_id=None):
+    pool = await get_pool()
+    if restaurant_id is None:
+        restaurant_id = await get_default_restaurant_id()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """INSERT INTO bookings
+                   (restaurant_id, user_id, table_name, date, time, guests, name, phone, note)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING id""",
+                (restaurant_id, user_id, table_name, date, time, guests, name, phone, note)
+            )
+            row = await cur.fetchone()
+            return row[0]
+
+
 async def get_booking(booking_id):
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, user_id, table_name, date, time, guests, name, phone, note, status FROM bookings WHERE id = %s",
+                "SELECT id, restaurant_id, user_id, table_name, date, time, guests, name, phone, note, status FROM bookings WHERE id = %s",
                 (booking_id,)
             )
             row = await cur.fetchone()
             if not row:
                 return None
-            keys = ['id','user_id','table_name','date','time','guests','name','phone','note','status']
+            keys = ['id','restaurant_id','user_id','table_name','date','time','guests','name','phone','note','status']
             return dict(zip(keys, row))
+
+
 async def update_status(booking_id, status):
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -60,33 +212,41 @@ async def update_status(booking_id, status):
                 "UPDATE bookings SET status = %s WHERE id = %s",
                 (status, booking_id)
             )
-async def get_booked_slots(date, table_name):
+
+
+async def get_booked_slots(date, table_name, restaurant_id=None):
     pool = await get_pool()
+    if restaurant_id is None:
+        restaurant_id = await get_default_restaurant_id()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
                 """SELECT time FROM bookings
-                   WHERE date = %s AND table_name = %s AND status != 'cancelled'""",
-                (date, table_name)
+                   WHERE date = %s AND table_name = %s AND restaurant_id = %s AND status != 'cancelled'""",
+                (date, table_name, restaurant_id)
             )
             rows = await cur.fetchall()
             return [r[0] for r in rows]
 
-async def get_all_bookings(date=None):
-    """Повертає всі бронювання (або тільки за конкретну дату) як список dict-ів."""
+
+async def get_all_bookings(date=None, restaurant_id=None):
+    """Повертає бронювання (за замовчуванням — тільки дефолтного ресторану, якщо restaurant_id не вказано)."""
     pool = await get_pool()
+    if restaurant_id is None:
+        restaurant_id = await get_default_restaurant_id()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
-            keys = ['id','user_id','table_name','date','time','guests','name','phone','note','status','created_at']
+            keys = ['id','restaurant_id','user_id','table_name','date','time','guests','name','phone','note','status','created_at']
             cols = ", ".join(keys)
             if date:
                 await cur.execute(
-                    f"SELECT {cols} FROM bookings WHERE date = %s ORDER BY date, time",
-                    (date,)
+                    f"SELECT {cols} FROM bookings WHERE restaurant_id = %s AND date = %s ORDER BY date, time",
+                    (restaurant_id, date)
                 )
             else:
                 await cur.execute(
-                    f"SELECT {cols} FROM bookings ORDER BY date, time"
+                    f"SELECT {cols} FROM bookings WHERE restaurant_id = %s ORDER BY date, time",
+                    (restaurant_id,)
                 )
             rows = await cur.fetchall()
             return [dict(zip(keys, r)) for r in rows]
