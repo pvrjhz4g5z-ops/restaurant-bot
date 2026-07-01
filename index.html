@@ -152,6 +152,7 @@ html, body {
 @keyframes nudge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
 .floor-wrap { padding: 12px 16px; }
+.floor-loading { text-align: center; padding: 60px 20px; color: var(--ink3); font-size: 13px; }
 .floor-svg { width: 100%; height: auto; display: block; }
 
 .legend {
@@ -378,7 +379,7 @@ html, body {
   <div class="landing-card">
     <div class="landing-logo">
       <div class="landing-logo-mark"></div>
-      <div class="landing-name">Ресторан</div>
+      <div class="landing-name" id="landing-name-text">Ресторан</div>
     </div>
     <div class="landing-tagline">Забронюйте<br>свій столик</div>
     <button class="btn-book" onclick="showFloor()">Забронювати</button>
@@ -392,7 +393,7 @@ html, body {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
       Назад
     </button>
-    <span class="floor-title">Зал</span>
+    <span class="floor-title" id="floor-title-text">Зал</span>
     <span class="spacer"></span>
   </div>
 
@@ -401,92 +402,8 @@ html, body {
     Торкніться вільного столика
   </div>
 
-  <div class="floor-wrap">
-    <svg class="floor-svg" viewBox="0 0 340 520" xmlns="http://www.w3.org/2000/svg">
-      <rect x="8" y="8" width="324" height="504" rx="16" fill="#ffffff" stroke="#ece9e4" stroke-width="1.5"/>
-      <rect x="138" y="501" width="64" height="7" rx="3.5" fill="#ddd8d0"/>
-      <text x="170" y="497" text-anchor="middle" font-size="7" fill="#a39d94" letter-spacing="0.18em" font-family="Inter">ВХІД</text>
-
-      <!-- BAR -->
-      <rect x="20" y="20" width="300" height="70" rx="12" fill="#f7f6f4" stroke="#ece9e4" stroke-width="1"/>
-      <text x="88" y="50" text-anchor="middle" font-size="9" fill="#a39d94" letter-spacing="0.2em" font-family="Inter" font-weight="500">БАР</text>
-      <g class="seat" data-id="b1" data-name="Бар 1" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="138" cy="55" r="11" class="seat-c"/><text x="138" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">1</text>
-      </g>
-      <g class="seat" data-id="b2" data-name="Бар 2" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="166" cy="55" r="11" class="seat-c"/><text x="166" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">2</text>
-      </g>
-      <g class="seat" data-id="b3" data-name="Бар 3" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="194" cy="55" r="11" class="seat-c"/><text x="194" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">3</text>
-      </g>
-      <g class="seat" data-id="b4" data-name="Бар 4" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="222" cy="55" r="11" class="seat-c"/><text x="222" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">4</text>
-      </g>
-      <g class="seat" data-id="b5" data-name="Бар 5" data-seats="1" onclick="onTableClick(this)">
-        <circle cx="250" cy="55" r="11" class="seat-c"/><text x="250" y="58" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">5</text>
-      </g>
-
-      <g class="tbl" data-id="1" data-name="Стіл 1" data-seats="2" onclick="onTableClick(this)">
-        <rect x="22" y="116" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="55" y="144" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">1</text>
-        <text x="55" y="157" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="55" y="168" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
-      </g>
-      <g class="tbl" data-id="2" data-name="Стіл 2" data-seats="2" onclick="onTableClick(this)">
-        <rect x="137" y="116" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="170" y="144" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">2</text>
-        <text x="170" y="157" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="170" y="168" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
-      </g>
-      <g class="tbl" data-id="3" data-name="Стіл 3" data-seats="2" onclick="onTableClick(this)">
-        <rect x="252" y="116" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="285" y="144" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">3</text>
-        <text x="285" y="157" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="285" y="168" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
-      </g>
-      <g class="tbl" data-id="4" data-name="Стіл 4" data-seats="4" onclick="onTableClick(this)">
-        <rect x="22" y="216" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="55" y="244" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">4</text>
-        <text x="55" y="257" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="55" y="268" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
-      </g>
-      <g class="tbl" data-id="5" data-name="Стіл 5" data-seats="4" onclick="onTableClick(this)">
-        <rect x="137" y="216" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="170" y="244" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">5</text>
-        <text x="170" y="257" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="170" y="268" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
-      </g>
-      <g class="tbl" data-id="6" data-name="Стіл 6" data-seats="4" onclick="onTableClick(this)">
-        <rect x="252" y="216" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="285" y="244" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">6</text>
-        <text x="285" y="257" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="285" y="268" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
-      </g>
-      <g class="tbl" data-id="7" data-name="Стіл 7" data-seats="2" onclick="onTableClick(this)">
-        <rect x="22" y="316" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="55" y="344" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">7</text>
-        <text x="55" y="357" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="55" y="368" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
-      </g>
-      <g class="tbl" data-id="8" data-name="Стіл 8" data-seats="4" onclick="onTableClick(this)">
-        <rect x="137" y="316" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="170" y="344" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">8</text>
-        <text x="170" y="357" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="170" y="368" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">4 місця</text>
-      </g>
-      <g class="tbl" data-id="9" data-name="Стіл 9" data-seats="2" onclick="onTableClick(this)">
-        <rect x="252" y="316" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="285" y="344" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">9</text>
-        <text x="285" y="357" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="285" y="368" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">2 місця</text>
-      </g>
-      <g class="tbl" data-id="10" data-name="VIP-стіл" data-seats="6" onclick="onTableClick(this)">
-        <rect x="22" y="416" width="296" height="66" rx="13" class="tbl-rect"/>
-        <text x="170" y="444" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter" letter-spacing="0.05em">VIP</text>
-        <text x="170" y="457" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="170" y="468" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">6 місць</text>
-      </g>
-    </svg>
+  <div class="floor-wrap" id="floor-wrap">
+    <div class="floor-loading" id="floor-loading">Завантаження залу…</div>
   </div>
   <div class="legend">
     <div class="legend-item"><span class="legend-dot" style="background:#f0f6ef;border:1.5px solid #4a8c45"></span>Вільний</div>
@@ -554,7 +471,95 @@ if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff'); tg.setBackgroun
 
 const TIMES = ['12:00','12:30','13:00','13:30','14:00','14:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'];
 const API_BASE = 'https://web-production-aff79.up.railway.app';
-const state = { tableId: null, tableName: '', tableSeats: 0, date: '', time: '', guests: 2 };
+const RESTAURANT_SLUG = new URLSearchParams(window.location.search).get('r') || 'default';
+const state = { tableId: null, tableName: '', tableSeats: 0, date: '', time: '', guests: 2, restaurantTables: [] };
+
+async function loadRestaurant() {
+  try {
+    const res = await fetch(`${API_BASE}/api/restaurant?r=${encodeURIComponent(RESTAURANT_SLUG)}`);
+    if (!res.ok) throw new Error('not ok');
+    const data = await res.json();
+    state.restaurantTables = data.tables || [];
+    document.getElementById('landing-name-text').textContent = data.name || 'Ресторан';
+    document.getElementById('floor-title-text').textContent = data.name || 'Зал';
+    renderFloorPlan(state.restaurantTables);
+  } catch (e) {
+    document.getElementById('floor-wrap').innerHTML = '<div class="floor-loading">Не вдалося завантажити зал. Спробуйте пізніше.</div>';
+  }
+}
+
+function renderFloorPlan(tables) {
+  const barSeats = tables.filter(t => t.seats === 1);
+  const regularTables = tables.filter(t => t.seats > 1 && t.seats < 6);
+  const bigTables = tables.filter(t => t.seats >= 6);
+
+  const W = 340;
+  let y = 20;
+  let svgParts = [];
+  const barH = barSeats.length > 0 ? 70 : 0;
+
+  // Розрахунок висоти залу наперед
+  const regRows = Math.ceil(regularTables.length / 3);
+  const totalH = 20 + (barH ? barH + 20 : 0) + regRows * 100 + bigTables.length * 86 + 40;
+
+  svgParts.push(`<rect x="8" y="8" width="${W-16}" height="${totalH-8}" rx="16" fill="#ffffff" stroke="#ece9e4" stroke-width="1.5"/>`);
+  svgParts.push(`<rect x="${W/2-32}" y="${totalH-11}" width="64" height="7" rx="3.5" fill="#ddd8d0"/>`);
+  svgParts.push(`<text x="${W/2}" y="${totalH-15}" text-anchor="middle" font-size="7" fill="#a39d94" letter-spacing="0.18em" font-family="Inter">ВХІД</text>`);
+
+  // BAR
+  if (barSeats.length > 0) {
+    svgParts.push(`<rect x="20" y="${y}" width="${W-40}" height="70" rx="12" fill="#f7f6f4" stroke="#ece9e4" stroke-width="1"/>`);
+    svgParts.push(`<text x="88" y="${y+30}" text-anchor="middle" font-size="9" fill="#a39d94" letter-spacing="0.2em" font-family="Inter" font-weight="500">БАР</text>`);
+    const startX = 138;
+    barSeats.slice(0, 6).forEach((seat, i) => {
+      const cx = startX + i * 28;
+      const cy = y + 35;
+      svgParts.push(`
+        <g class="seat" data-id="${esc(seat.id)}" data-name="${esc(seat.name)}" data-seats="1" onclick="onTableClick(this)">
+          <circle cx="${cx}" cy="${cy}" r="11" class="seat-c"/>
+          <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">${i+1}</text>
+        </g>`);
+    });
+    y += barH + 20;
+  }
+
+  // Звичайні столи — сітка 3 в ряд
+  regularTables.forEach((t, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const x = 22 + col * 115;
+    const ty = y + row * 100;
+    const cx = x + 33;
+    const label = String(t.name).replace(/^Стіл\s*/i, '');
+    svgParts.push(`
+      <g class="tbl" data-id="${esc(t.id)}" data-name="${esc(t.name)}" data-seats="${t.seats}" onclick="onTableClick(this)">
+        <rect x="${x}" y="${ty}" width="66" height="66" rx="13" class="tbl-rect"/>
+        <text x="${cx}" y="${ty+28}" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">${esc(label)}</text>
+        <text x="${cx}" y="${ty+41}" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="${cx}" y="${ty+52}" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">${t.seats} ${seatWord(t.seats)}</text>
+      </g>`);
+  });
+  y += regRows * 100;
+
+  // Великі столи (VIP тощо) — на всю ширину
+  bigTables.forEach((t) => {
+    svgParts.push(`
+      <g class="tbl" data-id="${esc(t.id)}" data-name="${esc(t.name)}" data-seats="${t.seats}" onclick="onTableClick(this)">
+        <rect x="22" y="${y}" width="${W-44}" height="66" rx="13" class="tbl-rect"/>
+        <text x="${W/2}" y="${y+28}" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter" letter-spacing="0.03em">${esc(t.name)}</text>
+        <text x="${W/2}" y="${y+41}" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
+        <text x="${W/2}" y="${y+52}" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">${t.seats} ${seatWord(t.seats)}</text>
+      </g>`);
+    y += 86;
+  });
+
+  const svg = `<svg class="floor-svg" viewBox="0 0 ${W} ${totalH}" xmlns="http://www.w3.org/2000/svg">${svgParts.join('')}</svg>`;
+  document.getElementById('floor-wrap').innerHTML = svg;
+}
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 const COUNTRIES = [
   { name: 'Україна', flag: '🇺🇦', code: '+380' },
@@ -660,7 +665,7 @@ if (window.visualViewport) {
 
 async function loadTableStatuses(date) {
   try {
-    const res = await fetch(`${API_BASE}/api/tables?date=${date}`);
+    const res = await fetch(`${API_BASE}/api/tables?date=${date}&r=${encodeURIComponent(RESTAURANT_SLUG)}`);
     if (!res.ok) { applyPulse(); return; }
     const data = await res.json();
     const booked = data.booked_tables || [];
@@ -732,7 +737,7 @@ function onTableClick(el) {
 async function loadTimeSlots(date, tableName) {
   let taken = [];
   try {
-    const res = await fetch(`${API_BASE}/api/slots?date=${date}&table=${encodeURIComponent(tableName)}`);
+    const res = await fetch(`${API_BASE}/api/slots?date=${date}&table=${encodeURIComponent(tableName)}&r=${encodeURIComponent(RESTAURANT_SLUG)}`);
     if (res.ok) { const d = await res.json(); taken = d.taken || []; }
   } catch(e) {}
   buildTimes(taken);
@@ -781,7 +786,7 @@ function submitBooking() {
   const name = document.getElementById('f-name').value.trim();
   const phone = selectedCountry.code + ' ' + document.getElementById('f-phone').value.trim();
   const note = document.getElementById('f-note').value.trim();
-  const data = { tableId: state.tableId, tableName: state.tableName, tableSeats: state.tableSeats, date: state.date, time: state.time, guests: state.guests, name, phone, note };
+  const data = { restaurantSlug: RESTAURANT_SLUG, tableId: state.tableId, tableName: state.tableName, tableSeats: state.tableSeats, date: state.date, time: state.time, guests: state.guests, name, phone, note };
   if (tg) tg.sendData(JSON.stringify(data));
   showSuccess(data);
 }
@@ -801,6 +806,8 @@ function showSuccess(data) {
   `;
   document.getElementById('successpage').classList.add('open');
 }
+
+loadRestaurant();
 </script>
 </body>
 </html>
