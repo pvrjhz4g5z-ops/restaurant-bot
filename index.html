@@ -40,7 +40,9 @@ html, body {
   color: var(--ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -129,7 +131,7 @@ html, body {
 .back-btn svg { width: 15px; height: 15px; }
 .floor-title {
   font-family: 'Fraunces', serif;
-  font-size: 15px; font-weight: 500;
+  font-size: 16px; font-weight: 500;
   color: var(--ink);
 }
 .floor-header .spacer { width: 54px; }
@@ -199,7 +201,7 @@ html, body {
   overflow-x: hidden;
   touch-action: pan-y;
   position: relative;
-  padding: 14px 24px 50vh;
+  padding: 14px 24px 42vh;
   box-shadow: 0 -8px 40px rgba(28,26,23,0.16);
   animation: sheetUp 0.32s cubic-bezier(0.22,1,0.36,1);
 }
@@ -223,6 +225,7 @@ html, body {
 
 .modal-eyebrow { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
 .modal-title { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 400; color: var(--ink); margin-bottom: 3px; }
+.modal-title .num { font-family: 'Inter', sans-serif; font-weight: 400; color: var(--ink); }
 .modal-sub { font-size: 13px; color: var(--ink2); margin-bottom: 26px; }
 
 .field { margin-bottom: 16px; }
@@ -234,13 +237,14 @@ html, body {
   border-radius: var(--r-sm);
   color: var(--ink);
   font-family: 'Inter', sans-serif;
-  font-size: 15px; outline: none;
+  font-size: 16px; outline: none;
   transition: all 0.18s;
 }
 .field input::placeholder { color: var(--ink3); }
 .field input:focus { background: #fff; border-color: var(--accent); }
 
 .section-label { font-size: 12px; color: var(--ink2); margin-bottom: 10px; font-weight: 500; }
+.field input, .phone-wrap input { caret-color: var(--accent); }
 
 .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 22px; }
 .time-btn {
@@ -296,7 +300,7 @@ html, body {
 .phone-wrap input[type=tel] {
   flex: 1; padding: 14px 15px;
   background: transparent; border: none;
-  color: var(--ink); font-size: 15px; outline: none; width: 100%;
+  color: var(--ink); font-size: 16px; outline: none; width: 100%;
   font-family: 'Inter', sans-serif;
 }
 .country-menu {
@@ -631,14 +635,25 @@ function seatWord(n) {
 
 document.querySelectorAll('.modal-sheet input').forEach(inp => {
   inp.addEventListener('focus', () => {
-    setTimeout(() => inp.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+    setTimeout(() => scrollFieldIntoModal(inp), 320);
   });
 });
+
+function scrollFieldIntoModal(el) {
+  const container = document.querySelector('.modal-sheet');
+  if (!container) return;
+  const rect = el.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const offsetInContainer = rect.top - containerRect.top + container.scrollTop;
+  const targetTop = offsetInContainer - 90;
+  container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+}
+
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => {
     const a = document.activeElement;
     if (a && a.tagName === 'INPUT' && a.closest('.modal-sheet')) {
-      setTimeout(() => a.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+      setTimeout(() => scrollFieldIntoModal(a), 80);
     }
   });
 }
@@ -696,7 +711,7 @@ function onTableClick(el) {
   state.tableName = el.dataset.name;
   state.tableSeats = parseInt(el.dataset.seats);
   state.guests = Math.min(2, state.tableSeats);
-  document.getElementById('modal-title').textContent = state.tableName;
+  document.getElementById('modal-title').innerHTML = state.tableName.replace(/(\d+)/g, '<span class="num">$1</span>');
   document.getElementById('modal-sub').textContent = state.tableSeats + ' ' + seatWord(state.tableSeats);
   document.getElementById('g-val').textContent = state.guests;
   const today = new Date();
