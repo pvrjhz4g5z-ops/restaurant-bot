@@ -783,12 +783,19 @@ async def api_tables(request):
         return web.json_response({"booked_tables": [], "error": "rate_limited"}, status=429,
                                  headers={"Access-Control-Allow-Origin": "*"})
     date = request.rel_url.query.get('date', '')[:20]
+    time = request.rel_url.query.get('time', '')[:10]
     slug = request.rel_url.query.get('r', '')[:60] or db.DEFAULT_SLUG
     try:
         restaurant = await db.get_restaurant_by_slug(slug)
         restaurant_id = restaurant["id"] if restaurant else None
         bookings = await db.get_all_bookings(date, restaurant_id=restaurant_id)
-        booked_tables = list(set(b['table_name'] for b in bookings if b['status'] != 'cancelled'))
+        if time:
+            booked_tables = list(set(
+                b['table_name'] for b in bookings
+                if b['status'] != 'cancelled' and b.get('time') == time
+            ))
+        else:
+            booked_tables = list(set(b['table_name'] for b in bookings if b['status'] != 'cancelled'))
         return web.json_response({"booked_tables": booked_tables}, headers={"Access-Control-Allow-Origin": "*"})
     except Exception:
         return web.json_response({"booked_tables": []}, headers={"Access-Control-Allow-Origin": "*"})
