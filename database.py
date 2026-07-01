@@ -56,6 +56,17 @@ async def init_db():
                 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS restaurant_id INTEGER
             """)
 
+            # ── Таблиця додаткових адмінів закладу (команда) ──
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS restaurant_admins (
+                    id SERIAL PRIMARY KEY,
+                    restaurant_id INTEGER NOT NULL,
+                    telegram_id BIGINT NOT NULL,
+                    label TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # ── Ресторан за замовчуванням (щоб поточний бот не зламався) ──
             await cur.execute("SELECT id FROM restaurants WHERE slug = %s", (DEFAULT_SLUG,))
             row = await cur.fetchone()
@@ -250,3 +261,69 @@ async def get_all_bookings(date=None, restaurant_id=None):
                 )
             rows = await cur.fetchall()
             return [dict(zip(keys, r)) for r in rows]
+
+
+# ────────────────── НАЛАШТУВАННЯ ЗАКЛАДУ ──────────────────
+
+async def update_restaurant(restaurant_id, name=None, tables_config=None):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            if name is not None:
+                await cur.execute(
+                    "UPDATE restaurants SET name = %s WHERE id = %s",
+                    (name, restaurant_id)
+                )
+            if tables_config is not None:
+                await cur.execute(
+                    "UPDATE restaurants SET tables_config = %s WHERE id = %s",
+                    (json.dumps(tables_config), restaurant_id)
+                )
+
+
+# ────────────────── КОМАНДА АДМІНІВ ──────────────────
+
+async def list_restaurant_admins(restaurant_id):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id, telegram_id, label FROM restaurant_admins WHERE restaurant_id = %s ORDER BY id",
+                (restaurant_id,)
+            )
+            rows = await cur.fetchall()
+            return [{"id": r[0], "telegram_id": r[1], "label": r[2]} for r in rows]
+
+
+async def add_restaurant_admin(restaurant_id, telegram_id, label=""):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO restaurant_admins (restaurant_id, telegram_id, label) VALUES (%s, %s, %s) RETURNING id",
+                (restaurant_id, telegram_id, label)
+            )
+            row = await cur.fetchone()
+            return row[0]
+
+
+async def remove_restaurant_admin(admin_row_id, restaurant_id):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "DELETE FROM restaurant_admins WHERE id = %s AND restaurant_id = %s",
+                (admin_row_id, restaurant_id)
+            )
+
+
+async def get_all_admin_ids(restaurant):
+    """Повертає список усіх Telegram ID, яким слід надсилати сповіщення про бронювання."""
+    ids = []
+    if restaurant.get("admin_id"):
+        ids.append(restaurant["admin_id"])
+    extra = await list_restaurant_admins(restaurant["id"])
+    for a in extra:
+        if a["telegram_id"] not in ids:
+            ids.append(a["telegram_id"])
+    return ids
