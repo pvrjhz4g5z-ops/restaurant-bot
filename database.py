@@ -1,17 +1,12 @@
 import aiopg
 import os
-
 _pool = None
 DB_URL = os.getenv("DATABASE_URL")
-
-
 async def get_pool():
     global _pool
     if _pool is None:
         _pool = await aiopg.create_pool(DB_URL)
     return _pool
-
-
 async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -31,8 +26,6 @@ async def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-
-
 async def save_booking(user_id, table_name, date, time, guests, name, phone, note):
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -46,8 +39,6 @@ async def save_booking(user_id, table_name, date, time, guests, name, phone, not
             )
             row = await cur.fetchone()
             return row[0]
-
-
 async def get_booking(booking_id):
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -61,8 +52,6 @@ async def get_booking(booking_id):
                 return None
             keys = ['id','user_id','table_name','date','time','guests','name','phone','note','status']
             return dict(zip(keys, row))
-
-
 async def update_status(booking_id, status):
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -71,8 +60,6 @@ async def update_status(booking_id, status):
                 "UPDATE bookings SET status = %s WHERE id = %s",
                 (status, booking_id)
             )
-
-
 async def get_booked_slots(date, table_name):
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -84,3 +71,22 @@ async def get_booked_slots(date, table_name):
             )
             rows = await cur.fetchall()
             return [r[0] for r in rows]
+
+async def get_all_bookings(date=None):
+    """Повертає всі бронювання (або тільки за конкретну дату) як список dict-ів."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            keys = ['id','user_id','table_name','date','time','guests','name','phone','note','status','created_at']
+            cols = ", ".join(keys)
+            if date:
+                await cur.execute(
+                    f"SELECT {cols} FROM bookings WHERE date = %s ORDER BY date, time",
+                    (date,)
+                )
+            else:
+                await cur.execute(
+                    f"SELECT {cols} FROM bookings ORDER BY date, time"
+                )
+            rows = await cur.fetchall()
+            return [dict(zip(keys, r)) for r in rows]
