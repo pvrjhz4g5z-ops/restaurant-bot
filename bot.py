@@ -22,7 +22,7 @@ ADMIN_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Адмін · Бронювання</title>
+<title>Адмін · Stolyk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@ ADMIN_HTML = """<!DOCTYPE html>
   --r:16px;--r-sm:10px;
 }
 html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:760px;margin:0 auto;padding:24px 18px 60px}
+.wrap{max-width:780px;margin:0 auto;padding:20px 16px 70px}
 
 /* login */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -52,27 +52,38 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
 .login-err{color:var(--red);font-size:13px;margin-top:10px;min-height:16px}
 
 /* header */
-.head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
-.head h1{font-family:'Fraunces',serif;font-size:30px;font-weight:500;line-height:1}
-.head .sub{font-size:13px;color:var(--ink2);margin-top:5px}
-.refresh{background:var(--card);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2)}
-.refresh svg{width:17px;height:17px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.head h1{font-family:'Fraunces',serif;font-size:26px;font-weight:500;line-height:1}
+.head .sub{font-size:12.5px;color:var(--ink2);margin-top:5px}
+.refresh{background:var(--card);border:1px solid var(--line);border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2)}
+.refresh svg{width:16px;height:16px}
 .refresh.spin svg{animation:spin .7s linear}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* stats */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
-.stat .n{font-family:'Fraunces',serif;font-size:28px;font-weight:500;line-height:1}
-.stat .l{font-size:12px;color:var(--ink2);margin-top:4px}
+/* tabs */
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:18px}
+.tab{flex:1;text-align:center;padding:10px 8px;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
+.tab.active{background:var(--ink);color:#fff}
+.tabpanel{display:none}
+.tabpanel.active{display:block}
+
+/* stats mini */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stat .n{font-family:'Fraunces',serif;font-size:24px;font-weight:500;line-height:1}
+.stat .l{font-size:11.5px;color:var(--ink2);margin-top:4px}
 .stat.amber .n{color:var(--amber)}
 .stat.green .n{color:var(--green)}
 
 /* filters */
-.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .filters input[type=date]{padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-family:'Inter';font-size:14px;outline:none;color:var(--ink)}
+.search-wrap{position:relative;flex:1;min-width:160px}
+.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink3)}
+.search-wrap input{width:100%;padding:10px 12px 10px 34px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-family:'Inter';font-size:14px;outline:none;color:var(--ink)}
+.search-wrap input:focus{border-color:var(--accent)}
 .chips{display:flex;gap:6px}
-.chip{padding:9px 14px;background:var(--card);border:1px solid var(--line);border-radius:99px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s}
+.chip{padding:9px 14px;background:var(--card);border:1px solid var(--line);border-radius:99px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap}
 .chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
 
 /* booking cards */
@@ -105,6 +116,51 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
 .empty svg{width:40px;height:40px;margin-bottom:14px;opacity:.5}
 .empty p{font-size:14px}
 .loading{text-align:center;padding:50px;color:var(--ink3);font-size:14px}
+
+/* STATS TAB */
+.chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.chart-card h3{font-family:'Fraunces',serif;font-size:16px;font-weight:500;margin-bottom:2px}
+.chart-card .chart-sub{font-size:12px;color:var(--ink2);margin-bottom:18px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar-fill{width:100%;background:var(--accent);border-radius:5px 5px 0 0;min-height:3px;transition:height .3s}
+.bar-label{font-size:10px;color:var(--ink3);margin-top:6px;white-space:nowrap}
+.bar-val{font-size:10.5px;color:var(--ink2);font-weight:600;margin-bottom:4px}
+.occ-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.occ-row:last-child{border-bottom:none}
+.occ-name{font-size:13.5px;font-weight:500;width:90px;flex-shrink:0}
+.occ-bar-bg{flex:1;height:8px;background:var(--bg);border-radius:99px;overflow:hidden}
+.occ-bar-fill{height:100%;background:var(--accent);border-radius:99px}
+.occ-count{font-size:12.5px;color:var(--ink2);width:46px;text-align:right;flex-shrink:0}
+
+/* SETTINGS TAB */
+.settings-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.settings-card h3{font-family:'Fraunces',serif;font-size:16px;font-weight:500;margin-bottom:4px}
+.settings-card .hint{font-size:12px;color:var(--ink2);margin-bottom:16px}
+.s-field{margin-bottom:14px}
+.s-field label{display:block;font-size:12px;color:var(--ink2);font-weight:500;margin-bottom:7px}
+.s-field input{width:100%;padding:11px 13px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;font-family:'Inter';font-size:14px;outline:none;color:var(--ink)}
+.s-field input:focus{border-color:var(--accent);background:#fff}
+.s-tbl-row{display:grid;grid-template-columns:1fr 80px 32px;gap:7px;margin-bottom:7px}
+.s-tbl-row input{padding:9px 11px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;font-family:'Inter';font-size:13.5px;outline:none;color:var(--ink)}
+.s-tbl-row input:focus{border-color:var(--accent);background:#fff}
+.s-tbl-del{width:32px;height:32px;border-radius:8px;background:var(--red-soft);color:var(--red);border:none;cursor:pointer;font-size:15px}
+.s-tbl-add{width:100%;padding:10px;border-radius:8px;border:1.5px dashed var(--line);background:transparent;color:var(--ink2);font-family:'Inter';font-size:13px;font-weight:500;cursor:pointer;margin-top:2px}
+.s-tbl-add:hover{border-color:var(--accent);color:var(--accent)}
+.btn-save{padding:12px 22px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Inter';font-size:13.5px;font-weight:600;cursor:pointer}
+.btn-save:disabled{opacity:.5}
+.save-msg{font-size:12.5px;margin-left:10px;color:var(--green)}
+
+.team-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.team-row:last-child{border-bottom:none}
+.team-info{flex:1}
+.team-label{font-size:13.5px;font-weight:500}
+.team-id{font-size:12px;color:var(--ink2)}
+.team-del{width:30px;height:30px;border-radius:8px;background:var(--red-soft);color:var(--red);border:none;cursor:pointer;flex-shrink:0}
+.team-add-row{display:flex;gap:8px;margin-top:12px}
+.team-add-row input{flex:1;padding:10px 12px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;font-family:'Inter';font-size:13.5px;outline:none}
+.team-add-row input:focus{border-color:var(--accent);background:#fff}
+.team-add-btn{padding:0 16px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
@@ -126,151 +182,347 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
   <div class="wrap">
     <div class="head">
       <div>
-        <h1>Бронювання</h1>
+        <h1 id="restaurant-title">Бронювання</h1>
         <div class="sub" id="head-sub">—</div>
       </div>
-      <button class="refresh" id="refresh-btn" onclick="loadBookings(true)">
+      <button class="refresh" id="refresh-btn" onclick="refreshAll(true)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>
       </button>
     </div>
 
-    <div class="stats">
-      <div class="stat amber"><div class="n" id="st-pending">0</div><div class="l">Очікують</div></div>
-      <div class="stat green"><div class="n" id="st-confirmed">0</div><div class="l">Підтверджені</div></div>
-      <div class="stat"><div class="n" id="st-total">0</div><div class="l">Всього</div></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="bookings" onclick="switchTab('bookings')">Бронювання</div>
+      <div class="tab" data-tab="stats" onclick="switchTab('stats')">Статистика</div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">Заклад</div>
     </div>
 
-    <div class="filters">
-      <input type="date" id="filter-date" onchange="render()">
-      <div class="chips">
-        <div class="chip active" data-status="all" onclick="setFilter(this,'all')">Всі</div>
-        <div class="chip" data-status="pending" onclick="setFilter(this,'pending')">Очікують</div>
-        <div class="chip" data-status="confirmed" onclick="setFilter(this,'confirmed')">Підтверджені</div>
+    <div class="tabpanel active" id="tab-bookings">
+      <div class="stats">
+        <div class="stat amber"><div class="n" id="st-pending">0</div><div class="l">Очікують</div></div>
+        <div class="stat green"><div class="n" id="st-confirmed">0</div><div class="l">Підтверджені</div></div>
+        <div class="stat"><div class="n" id="st-total">0</div><div class="l">Всього</div></div>
+      </div>
+
+      <div class="filters">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="search-input" placeholder="Пошук за ім'ям або телефоном" oninput="render()">
+        </div>
+        <input type="date" id="filter-date" onchange="render()">
+      </div>
+      <div class="filters">
+        <div class="chips">
+          <div class="chip active" data-status="all" onclick="setFilter(this,'all')">Всі</div>
+          <div class="chip" data-status="pending" onclick="setFilter(this,'pending')">Очікують</div>
+          <div class="chip" data-status="confirmed" onclick="setFilter(this,'confirmed')">Підтверджені</div>
+        </div>
+      </div>
+
+      <div class="list" id="list"><div class="loading">Завантаження…</div></div>
+    </div>
+
+    <div class="tabpanel" id="tab-stats">
+      <div class="chart-card">
+        <h3>Бронювання по днях</h3>
+        <div class="chart-sub">Останні 14 днів</div>
+        <div class="bars" id="chart-days"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Завантаженість столів</h3>
+        <div class="chart-sub">Кількість бронювань по кожному столу</div>
+        <div id="chart-occupancy"></div>
       </div>
     </div>
 
-    <div class="list" id="list"><div class="loading">Завантаження…</div></div>
+    <div class="tabpanel" id="tab-settings">
+      <div class="settings-card">
+        <h3>Основна інформація</h3>
+        <div class="hint">Назва закладу, яку бачать клієнти.</div>
+        <div class="s-field">
+          <label>Назва закладу</label>
+          <input type="text" id="s-name">
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>Столи</h3>
+        <div class="hint">Додайте, приберіть або відредагуйте столи вашого залу.</div>
+        <div id="s-tables-list"></div>
+        <button class="s-tbl-add" onclick="addSettingsTableRow()">+ Додати стіл</button>
+      </div>
+
+      <div style="display:flex;align-items:center;margin-bottom:20px">
+        <button class="btn-save" id="btn-save-settings" onclick="saveSettings()">Зберегти зміни</button>
+        <span class="save-msg" id="save-msg" style="display:none">✓ Збережено</span>
+      </div>
+
+      <div class="settings-card">
+        <h3>Команда</h3>
+        <div class="hint">Ці люди теж отримуватимуть сповіщення про нові бронювання в Telegram.</div>
+        <div id="team-list"></div>
+        <div class="team-add-row">
+          <input type="text" id="team-id-input" placeholder="Telegram ID">
+          <input type="text" id="team-label-input" placeholder="Ім'я (необов'язково)" style="max-width:140px">
+          <button class="team-add-btn" onclick="addTeamMember()">Додати</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-let ADMIN_KEY = '';
+let ADMIN_KEY = "";
 let allBookings = [];
-let filterStatus = 'all';
+let filterStatus = "all";
+let settingsTables = [];
+let teamMembers = [];
 
 function login(){
-  const k = document.getElementById('key-input').value.trim();
+  const k = document.getElementById("key-input").value.trim();
   if(!k){return}
   ADMIN_KEY = k;
-  fetch('/api/admin/bookings?key='+encodeURIComponent(k)).then(r=>{
-    if(r.status===401){document.getElementById('login-err').textContent='Невірний ключ';return null}
+  fetch("/api/admin/bookings?key="+encodeURIComponent(k)).then(r=>{
+    if(r.status===401){document.getElementById("login-err").textContent="Невірний ключ";return null}
     return r.json();
   }).then(d=>{
     if(!d)return;
-    try{localStorage.setItem('admin_key',k)}catch(e){}
-    document.getElementById('login').style.display='none';
-    document.getElementById('panel').style.display='block';
+    try{localStorage.setItem("admin_key",k)}catch(e){}
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
     allBookings = d.bookings||[];
+    if(d.restaurant_name) document.getElementById("restaurant-title").textContent = d.restaurant_name;
     render();
-  }).catch(()=>{document.getElementById('login-err').textContent='Помилка з\\'єднання'});
+    renderStats();
+    loadSettings();
+  }).catch(()=>{document.getElementById("login-err").textContent="Помилка з'єднання"});
 }
 
-function loadBookings(spin){
-  if(spin){const b=document.getElementById('refresh-btn');b.classList.add('spin');setTimeout(()=>b.classList.remove('spin'),700)}
-  fetch('/api/admin/bookings?key='+encodeURIComponent(ADMIN_KEY)).then(r=>r.json()).then(d=>{
-    allBookings=d.bookings||[];render();
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+  document.querySelectorAll(".tabpanel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  if(name==="stats") renderStats();
+}
+
+function refreshAll(spin){
+  if(spin){const b=document.getElementById("refresh-btn");b.classList.add("spin");setTimeout(()=>b.classList.remove("spin"),700)}
+  fetch("/api/admin/bookings?key="+encodeURIComponent(ADMIN_KEY)).then(r=>r.json()).then(d=>{
+    allBookings=d.bookings||[];render();renderStats();
   }).catch(()=>{});
 }
 
 function setFilter(el,status){
-  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+  el.classList.add("active");
   filterStatus=status;render();
 }
 
-function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 function render(){
-  const dateF = document.getElementById('filter-date').value;
+  const dateF = document.getElementById("filter-date").value;
+  const q = document.getElementById("search-input").value.trim().toLowerCase();
   let list = allBookings.slice();
 
-  // stats (на всіх, не на фільтрованих)
-  const pending = allBookings.filter(b=>b.status==='pending').length;
-  const confirmed = allBookings.filter(b=>b.status==='confirmed').length;
-  document.getElementById('st-pending').textContent=pending;
-  document.getElementById('st-confirmed').textContent=confirmed;
-  document.getElementById('st-total').textContent=allBookings.filter(b=>b.status!=='cancelled').length;
-  document.getElementById('head-sub').textContent=pending>0?(pending+' очікують підтвердження'):'Все опрацьовано';
+  const pending = allBookings.filter(b=>b.status==="pending").length;
+  const confirmed = allBookings.filter(b=>b.status==="confirmed").length;
+  document.getElementById("st-pending").textContent=pending;
+  document.getElementById("st-confirmed").textContent=confirmed;
+  document.getElementById("st-total").textContent=allBookings.filter(b=>b.status!=="cancelled").length;
+  document.getElementById("head-sub").textContent=pending>0?(pending+" очікують підтвердження"):"Все опрацьовано";
 
   if(dateF) list=list.filter(b=>b.date===dateF);
-  if(filterStatus!=='all') list=list.filter(b=>b.status===filterStatus);
+  if(filterStatus!=="all") list=list.filter(b=>b.status===filterStatus);
+  if(q) list=list.filter(b=>
+    String(b.name||"").toLowerCase().includes(q) ||
+    String(b.phone||"").toLowerCase().includes(q)
+  );
 
-  // сорт: pending перші, далі за датою+часом
   const order={pending:0,confirmed:1,cancelled:2};
   list.sort((a,b)=>{
     if(order[a.status]!==order[b.status])return order[a.status]-order[b.status];
     return (a.date+a.time).localeCompare(b.date+b.time);
   });
 
-  const wrap=document.getElementById('list');
+  const wrap=document.getElementById("list");
   if(list.length===0){
-    wrap.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Бронювань немає</p></div>';
+    wrap.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Нічого не знайдено</p></div>';
     return;
   }
 
-  const stLabel={pending:'Очікує',confirmed:'Підтверджено',cancelled:'Скасовано'};
+  const stLabel={pending:"Очікує",confirmed:"Підтверджено",cancelled:"Скасовано"};
   wrap.innerHTML=list.map(b=>{
-    const d=new Date(b.date+'T00:00:00');
-    const dateStr=isNaN(d)?b.date:d.toLocaleDateString('uk-UA',{day:'numeric',month:'long'});
-    const phoneDigits=String(b.phone||'').replace(/[^0-9+]/g,'');
-    return `<div class="bk ${b.status}">
-      <div class="bk-top">
-        <div>
-          <div class="bk-table">${esc(b.table_name)}</div>
-          <div class="bk-when">${dateStr} · ${esc(b.time)}</div>
-        </div>
-        <span class="badge ${b.status}">${stLabel[b.status]||b.status}</span>
-      </div>
-      <div class="bk-info">
-        <span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${esc(b.name)}</span>
-        <span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg><a href="tel:${phoneDigits}">${esc(b.phone)}</a></span>
-        <span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>${esc(b.guests)} гост.</span>
-      </div>
-      ${b.note?`<div class="bk-note">«${esc(b.note)}»</div>`:''}
-      ${b.status==='pending'?`<div class="bk-actions">
-        <button class="act act-confirm" onclick="doAction(${b.id},'confirm',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Підтвердити</button>
-        <button class="act act-cancel" onclick="doAction(${b.id},'cancel',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button>
-      </div>`:''}
-      ${b.status==='confirmed'?`<div class="bk-actions">
-        <button class="act act-cancel" onclick="doAction(${b.id},'cancel',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button>
-      </div>`:''}
-    </div>`;
-  }).join('');
+    const d=new Date(b.date+"T00:00:00");
+    const dateStr=isNaN(d)?b.date:d.toLocaleDateString("uk-UA",{day:"numeric",month:"long"});
+    const phoneDigits=String(b.phone||"").replace(/[^0-9+]/g,"");
+    return '<div class="bk '+b.status+'">'+
+      '<div class="bk-top">'+
+        '<div>'+
+          '<div class="bk-table">'+esc(b.table_name)+'</div>'+
+          '<div class="bk-when">'+dateStr+' · '+esc(b.time)+'</div>'+
+        '</div>'+
+        '<span class="badge '+b.status+'">'+(stLabel[b.status]||b.status)+'</span>'+
+      '</div>'+
+      '<div class="bk-info">'+
+        '<span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'+esc(b.name)+'</span>'+
+        '<span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg><a href="tel:'+phoneDigits+'">'+esc(b.phone)+'</a></span>'+
+        '<span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>'+esc(b.guests)+' гост.</span>'+
+      '</div>'+
+      (b.note?'<div class="bk-note">«'+esc(b.note)+'»</div>':"")+
+      (b.status==="pending"?'<div class="bk-actions"><button class="act act-confirm" onclick="doAction('+b.id+',\\'confirm\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Підтвердити</button><button class="act act-cancel" onclick="doAction('+b.id+',\\'cancel\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button></div>':"")+
+      (b.status==="confirmed"?'<div class="bk-actions"><button class="act act-cancel" onclick="doAction('+b.id+',\\'cancel\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button></div>':"")+
+    '</div>';
+  }).join("");
 }
 
 function doAction(id,action,btn){
-  const card=btn.closest('.bk');
-  card.querySelectorAll('.act').forEach(b=>b.disabled=true);
-  fetch('/api/admin/action?key='+encodeURIComponent(ADMIN_KEY),{
-    method:'POST',headers:{'Content-Type':'application/json'},
+  const card=btn.closest(".bk");
+  card.querySelectorAll(".act").forEach(b=>b.disabled=true);
+  fetch("/api/admin/action?key="+encodeURIComponent(ADMIN_KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({id:id,action:action})
   }).then(r=>r.json()).then(d=>{
     if(d.ok){
       const b=allBookings.find(x=>x.id===id);
       if(b)b.status=d.status;
-      render();
-    }else{card.querySelectorAll('.act').forEach(b=>b.disabled=false)}
-  }).catch(()=>{card.querySelectorAll('.act').forEach(b=>b.disabled=false)});
+      render();renderStats();
+    }else{card.querySelectorAll(".act").forEach(b=>b.disabled=false)}
+  }).catch(()=>{card.querySelectorAll(".act").forEach(b=>b.disabled=false)});
 }
 
-// автологін якщо ключ збережено
+function renderStats(){
+  const active = allBookings.filter(b=>b.status!=="cancelled");
+
+  const days = [];
+  const today = new Date();
+  for(let i=13;i>=0;i--){
+    const d = new Date(today);
+    d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    days.push(key);
+  }
+  const countsByDay = {};
+  days.forEach(d=>countsByDay[d]=0);
+  active.forEach(b=>{ if(countsByDay.hasOwnProperty(b.date)) countsByDay[b.date]++; });
+  const maxCount = Math.max(1, ...Object.values(countsByDay));
+
+  const chartDays = document.getElementById("chart-days");
+  chartDays.innerHTML = days.map(d=>{
+    const c = countsByDay[d];
+    const h = Math.round((c/maxCount)*84)+4;
+    const dt = new Date(d+"T00:00:00");
+    const label = dt.toLocaleDateString("uk-UA",{day:"numeric",month:"numeric"});
+    return '<div class="bar-col"><div class="bar-val">'+(c||"")+'</div><div class="bar-fill" style="height:'+h+'px"></div><div class="bar-label">'+label+'</div></div>';
+  }).join("");
+
+  const occCounts = {};
+  active.forEach(b=>{ occCounts[b.table_name] = (occCounts[b.table_name]||0)+1; });
+  const occEntries = Object.entries(occCounts).sort((a,b)=>b[1]-a[1]);
+  const maxOcc = Math.max(1, ...occEntries.map(e=>e[1]));
+
+  const occWrap = document.getElementById("chart-occupancy");
+  if(occEntries.length===0){
+    occWrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Ще немає даних</div>';
+  } else {
+    occWrap.innerHTML = occEntries.map(([name,count])=>{
+      const pct = Math.round((count/maxOcc)*100);
+      return '<div class="occ-row"><div class="occ-name">'+esc(name)+'</div><div class="occ-bar-bg"><div class="occ-bar-fill" style="width:'+pct+'%"></div></div><div class="occ-count">'+count+' брон.</div></div>';
+    }).join("");
+  }
+}
+
+function loadSettings(){
+  fetch("/api/admin/settings?key="+encodeURIComponent(ADMIN_KEY)).then(r=>r.json()).then(d=>{
+    document.getElementById("s-name").value = d.name || "";
+    settingsTables = (d.tables||[]).map(t=>({id:t.id, name:t.name, seats:t.seats}));
+    renderSettingsTables();
+    teamMembers = d.team || [];
+    renderTeam();
+  }).catch(()=>{});
+}
+
+function renderSettingsTables(){
+  const wrap = document.getElementById("s-tables-list");
+  wrap.innerHTML = settingsTables.map((t,i)=>
+    '<div class="s-tbl-row"><input type="text" value="'+esc(t.name)+'" oninput="settingsTables['+i+'].name=this.value"><input type="number" min="1" max="30" value="'+t.seats+'" oninput="settingsTables['+i+'].seats=parseInt(this.value)||0"><button class="s-tbl-del" onclick="removeSettingsTable('+i+')">×</button></div>'
+  ).join("");
+}
+function addSettingsTableRow(){
+  settingsTables.push({id: null, name: "Стіл "+(settingsTables.length+1), seats: 2});
+  renderSettingsTables();
+}
+function removeSettingsTable(i){
+  settingsTables.splice(i,1);
+  renderSettingsTables();
+}
+
+function saveSettings(){
+  const btn = document.getElementById("btn-save-settings");
+  const msg = document.getElementById("save-msg");
+  msg.style.display = "none";
+  const name = document.getElementById("s-name").value.trim();
+  if(!name || settingsTables.length===0) { alert("Вкажіть назву і хоча б один стіл."); return; }
+  btn.disabled = true;
+  fetch("/api/admin/settings?key="+encodeURIComponent(ADMIN_KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:name, tables:settingsTables})
+  }).then(r=>r.json()).then(d=>{
+    btn.disabled = false;
+    if(d.ok){
+      msg.style.display="inline";
+      document.getElementById("restaurant-title").textContent = name;
+      setTimeout(()=>{msg.style.display="none"},2500);
+    } else {
+      alert(d.error || "Помилка збереження.");
+    }
+  }).catch(()=>{ btn.disabled=false; alert("Помилка з'єднання."); });
+}
+
+function renderTeam(){
+  const wrap = document.getElementById("team-list");
+  if(teamMembers.length===0){
+    wrap.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:6px 0">Поки немає доданих адмінів</div>';
+    return;
+  }
+  wrap.innerHTML = teamMembers.map(m=>
+    '<div class="team-row"><div class="team-info"><div class="team-label">'+esc(m.label||"Без імені")+'</div><div class="team-id">ID: '+m.telegram_id+'</div></div><button class="team-del" onclick="removeTeamMember('+m.id+')">×</button></div>'
+  ).join("");
+}
+
+function addTeamMember(){
+  const idInput = document.getElementById("team-id-input");
+  const labelInput = document.getElementById("team-label-input");
+  const telegramId = idInput.value.trim();
+  const label = labelInput.value.trim();
+  if(!telegramId){ return; }
+  fetch("/api/admin/team/add?key="+encodeURIComponent(ADMIN_KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({telegramId:telegramId, label:label})
+  }).then(r=>r.json()).then(d=>{
+    if(d.ok){
+      idInput.value=""; labelInput.value="";
+      loadSettings();
+    } else {
+      alert(d.error || "Помилка.");
+    }
+  }).catch(()=>{});
+}
+
+function removeTeamMember(id){
+  fetch("/api/admin/team/remove?key="+encodeURIComponent(ADMIN_KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id:id})
+  }).then(r=>r.json()).then(d=>{
+    if(d.ok) loadSettings();
+  }).catch(()=>{});
+}
+
 try{
-  const saved=localStorage.getItem('admin_key');
-  if(saved){document.getElementById('key-input').value=saved;login()}
+  const saved=localStorage.getItem("admin_key");
+  if(saved){document.getElementById("key-input").value=saved;login()}
 }catch(e){}
 
-// автооновлення кожні 30с
-setInterval(()=>{if(ADMIN_KEY)loadBookings(false)},30000);
+setInterval(()=>{if(ADMIN_KEY)refreshAll(false)},30000);
 </script>
 </body>
 </html>"""
@@ -410,8 +662,10 @@ async def handle_webapp_data(message: Message):
         )
         await message.answer(client_text, parse_mode="Markdown")
 
-        restaurant_admin_id = restaurant.get("admin_id") or ADMIN_ID
-        if restaurant_admin_id:
+        admin_ids = await db.get_all_admin_ids(restaurant)
+        if not admin_ids and ADMIN_ID:
+            admin_ids = [ADMIN_ID]
+        if admin_ids:
             admin_text = (
                 f"🔔 *Нове бронювання #{booking_id}*\n\n"
                 f"🏠 {restaurant['name']}\n"
@@ -429,11 +683,15 @@ async def handle_webapp_data(message: Message):
                 text="❌ Скасувати",
                 callback_data=f"cancel_{booking_id}"
             ))
-            await bot.send_message(
-                restaurant_admin_id, admin_text,
-                parse_mode="Markdown",
-                reply_markup=builder.as_markup()
-            )
+            for aid in admin_ids:
+                try:
+                    await bot.send_message(
+                        aid, admin_text,
+                        parse_mode="Markdown",
+                        reply_markup=builder.as_markup()
+                    )
+                except Exception:
+                    pass
 
     except Exception as e:
         logging.error(f"Error handling webapp data: {e}")
@@ -637,6 +895,93 @@ async def admin_action(request):
         return web.json_response({"ok": True, "status": new_status})
     except Exception:
         return web.json_response({"error": "failed"}, status=500)
+
+
+# ────────────────── НАЛАШТУВАННЯ ЗАКЛАДУ (адмінка) ──────────────────
+
+async def admin_settings_get(request):
+    restaurant = await _get_restaurant_from_key(request)
+    if not restaurant:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    team = await db.list_restaurant_admins(restaurant["id"])
+    return web.json_response({
+        "name": restaurant["name"],
+        "tables": restaurant.get("tables_config", []),
+        "primary_admin_id": restaurant.get("admin_id"),
+        "team": team
+    })
+
+
+async def admin_settings_update(request):
+    restaurant = await _get_restaurant_from_key(request)
+    if not restaurant:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        data = await request.json()
+        name = str(data.get("name", "")).strip()[:80]
+        tables = data.get("tables", [])
+
+        if not name or len(name) < 2:
+            return web.json_response({"error": "Вкажіть назву закладу."}, status=400)
+        if not isinstance(tables, list) or len(tables) == 0:
+            return web.json_response({"error": "Додайте хоча б один стіл."}, status=400)
+        if len(tables) > 60:
+            return web.json_response({"error": "Забагато столів (максимум 60)."}, status=400)
+
+        clean_tables = []
+        for i, t in enumerate(tables):
+            tname = str(t.get("name", "")).strip()[:40]
+            try:
+                seats = int(t.get("seats", 0))
+            except (ValueError, TypeError):
+                seats = 0
+            if not tname or seats < 1 or seats > 30:
+                return web.json_response({"error": f"Перевірте стіл №{i+1}."}, status=400)
+            clean_tables.append({"id": str(t.get("id") or (i + 1)), "name": tname, "seats": seats})
+
+        await db.update_restaurant(restaurant["id"], name=name, tables_config=clean_tables)
+        return web.json_response({"ok": True})
+    except Exception as e:
+        logging.error(f"Settings update error: {e}")
+        return web.json_response({"error": "Щось пішло не так."}, status=500)
+
+
+async def admin_team_add(request):
+    restaurant = await _get_restaurant_from_key(request)
+    if not restaurant:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        data = await request.json()
+        telegram_id_raw = str(data.get("telegramId", "")).strip()
+        label = str(data.get("label", "")).strip()[:40]
+        try:
+            telegram_id = int(telegram_id_raw)
+            if telegram_id <= 0:
+                raise ValueError()
+        except ValueError:
+            return web.json_response({"error": "Невірний Telegram ID."}, status=400)
+
+        existing_team = await db.list_restaurant_admins(restaurant["id"])
+        if len(existing_team) >= 10:
+            return web.json_response({"error": "Максимум 10 додаткових адмінів."}, status=400)
+
+        admin_row_id = await db.add_restaurant_admin(restaurant["id"], telegram_id, label)
+        return web.json_response({"ok": True, "id": admin_row_id})
+    except Exception:
+        return web.json_response({"error": "Щось пішло не так."}, status=500)
+
+
+async def admin_team_remove(request):
+    restaurant = await _get_restaurant_from_key(request)
+    if not restaurant:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        data = await request.json()
+        admin_row_id = int(data.get("id"))
+        await db.remove_restaurant_admin(admin_row_id, restaurant["id"])
+        return web.json_response({"ok": True})
+    except Exception:
+        return web.json_response({"error": "Щось пішло не так."}, status=500)
 
 
 # ────────────────── РЕЄСТРАЦІЯ НОВОГО ЗАКЛАДУ ──────────────────
@@ -1239,6 +1584,10 @@ async def main():
     app.router.add_get('/admin', admin_page)
     app.router.add_get('/api/admin/bookings', admin_bookings)
     app.router.add_post('/api/admin/action', admin_action)
+    app.router.add_get('/api/admin/settings', admin_settings_get)
+    app.router.add_post('/api/admin/settings', admin_settings_update)
+    app.router.add_post('/api/admin/team/add', admin_team_add)
+    app.router.add_post('/api/admin/team/remove', admin_team_remove)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 8080)
