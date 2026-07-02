@@ -1192,6 +1192,24 @@ nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-f
 
 /* CTA BAND */
 .cta-band{background:var(--ink);border-radius:28px;padding:56px 40px;text-align:center;position:relative;overflow:hidden;margin-bottom:70px}
+
+/* PRICING */
+.trial-banner{background:var(--accent-soft);border-radius:14px;padding:16px 20px;text-align:center;font-size:14.5px;color:var(--accent-dark);font-weight:500;margin-bottom:24px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.plan{background:var(--bg2);border:1px solid var(--line);border-radius:22px;padding:30px 26px;position:relative}
+.plan.best{border:2px solid var(--accent);background:#fff}
+.best-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 14px;border-radius:99px;text-transform:uppercase}
+.plan h3{font-family:'Fraunces',serif;font-size:18px;font-weight:500;margin-bottom:14px}
+.price{font-family:'Fraunces',serif;font-size:40px;font-weight:500;line-height:1}
+.price span{font-size:14px;color:var(--ink2);font-family:'Inter'}
+.per{font-size:12.5px;color:var(--ink2);margin-top:6px}
+.save-badge{display:inline-block;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;margin-top:12px}
+.plan ul{list-style:none;margin-top:18px}
+.plan li{font-size:13.5px;color:var(--ink2);padding:6px 0;display:flex;gap:8px;align-items:flex-start}
+.plan li svg{width:15px;height:15px;color:var(--green);flex-shrink:0;margin-top:2px}
+.pay-note{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-top:16px;font-size:13.5px;color:var(--ink2);line-height:1.7}
+.pay-note b{color:var(--ink)}
+@media(max-width:720px){.plans{grid-template-columns:1fr}}
 .cta-band::after{content:'';position:absolute;top:-30%;right:-15%;width:60%;height:70%;background:radial-gradient(circle,rgba(224,112,32,.35) 0%,transparent 70%)}
 .cta-band h2{position:relative;font-family:'Fraunces',serif;font-size:clamp(24px,4vw,34px);font-weight:400;color:#fff;margin-bottom:14px}
 .cta-band p{position:relative;color:rgba(255,255,255,.6);font-size:14.5px;margin-bottom:26px}
@@ -1217,7 +1235,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
       Stolyk
     </div>
     <div style="display:flex;gap:18px;align-items:center">
-      <a href="/pricing" style="font-size:13.5px;font-weight:500;color:var(--ink2)">Тарифи</a>
+      <a href="#pricing" style="font-size:13.5px;font-weight:500;color:var(--ink2)">Тарифи</a>
       <a href="/register" class="nav-cta">Підключити заклад</a>
     </div>
   </div>
@@ -1314,6 +1332,44 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
         <h3>Готово за хвилини</h3>
         <p>Не треба чекати розробників — заповнюєте форму й одразу отримуєте робочого бота.</p>
       </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing">
+    <div class="section-head">
+      <div class="eyebrow">Тарифи</div>
+      <h2>Простий і чесний тариф</h2>
+      <p>Без комісій з бронювань. Без прихованих платежів.</p>
+    </div>
+
+    <div class="trial-banner">🎁 Перші 14 днів — безкоштовно. Спробуйте без жодних зобов'язань.</div>
+
+    <div class="plans">
+      <div class="plan">
+        <h3>Щомісячно</h3>
+        <div class="price">800 <span>грн/міс</span></div>
+        <div class="per">Оплата раз на місяць</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Telegram-бот бронювань</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Панель управління</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Статистика і нагадування</li>
+        </ul>
+      </div>
+      <div class="plan best">
+        <div class="best-badge">Вигідніше</div>
+        <h3>Щорічно</h3>
+        <div class="price">8 800 <span>грн/рік</span></div>
+        <div class="per">≈ 733 грн/міс</div>
+        <div class="save-badge">1 місяць у подарунок</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Все з місячного тарифу</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Платите за 11 місяців — отримуєте 12</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pay-note">
+      <b>Як оплатити:</b> оплатіть 800 грн (місяць) або 8 800 грн (рік) за реквізитами, надішліть скріншот квитанції і назву вашого закладу нам у Telegram — підписку буде активовано, вам прийде підтвердження.
     </div>
   </section>
 
