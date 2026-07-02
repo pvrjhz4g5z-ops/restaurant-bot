@@ -550,7 +550,7 @@ async def start(message: Message, command: CommandObject):
     )
     restaurant_name = restaurant["name"] if restaurant else "нашому ресторані"
     await message.answer(
-        f"👋 Вітаємо в {restaurant_name}!\n\n"
+        f"👋 Вітаємо в закладі «{restaurant_name}»!\n\n"
         "Натисніть кнопку нижче, щоб обрати столик і зробити бронювання.",
         reply_markup=keyboard
     )
@@ -827,13 +827,23 @@ async def api_slots(request):
 # ────────────────── ADMIN PANEL ──────────────────
 
 async def _get_restaurant_from_key(request):
-    """Знаходить заклад за секретним ключем адміна (з query або заголовка)."""
+    """Знаходить заклад за секретним ключем адміна (з query або заголовка).
+    З захистом від перебору ключів: після 30 невдалих спроб за хвилину — блок."""
+    ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
+    fail_key = f"auth_fail_{ip}"
+    # Якщо ліміт невдалих спроб вичерпано — блокуємо будь-які спроби з цього IP
+    now = time_module.time()
+    recent_fails = [t for t in _rate_limit.get(fail_key, []) if now - t < RATE_LIMIT_WINDOW]
+    if len(recent_fails) >= RATE_LIMIT_MAX:
+        return None
     key = request.rel_url.query.get('key', '') or request.headers.get('X-Admin-Key', '')
     if not key:
         return None
     restaurant = await db.get_restaurant_by_admin_key(key)
     if restaurant and restaurant.get("active", True):
         return restaurant
+    # Невдала спроба — фіксуємо
+    _rate_limit[fail_key].append(now)
     return None
 
 
@@ -1316,13 +1326,13 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
   <section class="section">
     <div class="section-head">
       <div class="eyebrow">Можливості</div>
-      <h2>Все що потрібно закладу — в одному сервісі</h2>
+      <h2>Все, що потрібно закладу, — в одному сервісі</h2>
     </div>
     <div class="features">
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div>
         <h3>Живий план залу</h3>
-        <p>Клієнт бачить які столи вільні, а які зайняті — прямо зараз, без дзвінків адміну.</p>
+        <p>Клієнт бачить, які столи вільні, а які зайняті — прямо зараз, без дзвінків адміну.</p>
       </div>
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
@@ -1342,7 +1352,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
         <h3>Захист від спаму</h3>
-        <p>Обмеження на кількість активних бронювань і перевірку дублів — черга працює чесно.</p>
+        <p>Обмеження на кількість активних бронювань і перевірка дублів — черга працює чесно.</p>
       </div>
       <div class="feature">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></div>
@@ -1668,7 +1678,9 @@ function copyField(id) {
 
 def _check_super_key(request):
     key = request.rel_url.query.get('key', '')
-    return ADMIN_KEY and key == ADMIN_KEY
+    if not ADMIN_KEY or not key:
+        return False
+    return secrets.compare_digest(key, ADMIN_KEY)
 
 
 async def super_page(request):
@@ -2034,7 +2046,7 @@ async def reminder_loop():
                         await bot.send_message(
                             b["user_id"],
                             f"🔔 Нагадування про бронювання!\n\n"
-                            f"Чекаємо вас сьогодні о {b['time']} в {rest_name}.\n"
+                            f"Чекаємо вас сьогодні о {b['time']} в закладі «{rest_name}».\n"
                             f"🪑 {b['table_name']} · 👥 {b['guests']} гост.\n\n"
                             f"До зустрічі! 👋"
                         )
@@ -2052,7 +2064,15 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
 
     # Start HTTP server
-    app = web.Application()
+    @web.middleware
+    async def security_headers(request, handler):
+        resp = await handler(request)
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['X-Frame-Options'] = 'DENY'
+        resp.headers['Referrer-Policy'] = 'no-referrer'
+        return resp
+
+    app = web.Application(middlewares=[security_headers])
     app.router.add_get('/', landing_page)
     app.router.add_get('/pricing', pricing_page)
     app.router.add_get('/owner', super_page)
