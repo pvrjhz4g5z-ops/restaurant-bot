@@ -1575,6 +1575,51 @@ function copyField(id) {
 </html>"""
 
 
+async def reminder_loop():
+    """Фонова задача: кожні 5 хвилин перевіряє бронювання і надсилає нагадування
+    клієнтам, у яких візит через 2 години або менше (за київським часом)."""
+    from datetime import datetime, timedelta, timezone
+
+    KYIV_TZ = timezone(timedelta(hours=3))  # Київ (літній час UTC+3)
+    try:
+        from zoneinfo import ZoneInfo
+        KYIV_TZ = ZoneInfo("Europe/Kyiv")
+    except Exception:
+        pass
+
+    while True:
+        try:
+            now = datetime.now(KYIV_TZ)
+            today_str = now.strftime("%Y-%m-%d")
+            bookings = await db.get_bookings_for_reminder(today_str)
+            for b in bookings:
+                try:
+                    bt = datetime.strptime(f"{b['date']} {b['time']}", "%Y-%m-%d %H:%M")
+                    bt = bt.replace(tzinfo=KYIV_TZ)
+                except ValueError:
+                    continue
+                minutes_left = (bt - now).total_seconds() / 60
+                # Нагадуємо якщо до візиту від 0 до 120 хвилин
+                if 0 < minutes_left <= 120:
+                    restaurant = await db.get_restaurant_by_id(b["restaurant_id"])
+                    rest_name = restaurant["name"] if restaurant else "ресторані"
+                    try:
+                        await bot.send_message(
+                            b["user_id"],
+                            f"🔔 Нагадування про бронювання!\n\n"
+                            f"Чекаємо вас сьогодні о {b['time']} в {rest_name}.\n"
+                            f"🪑 {b['table_name']} · 👥 {b['guests']} гост.\n\n"
+                            f"До зустрічі! 👋"
+                        )
+                        await db.mark_reminded(b["id"])
+                    except Exception:
+                        # Користувач міг заблокувати бота — позначаємо щоб не пробувати вічно
+                        await db.mark_reminded(b["id"])
+        except Exception as e:
+            logging.error(f"Reminder loop error: {e}")
+        await asyncio.sleep(300)  # 5 хвилин
+
+
 async def main():
     await db.init_db()
     await bot.delete_webhook(drop_pending_updates=True)
@@ -1600,6 +1645,10 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
     logging.info("API server started on port 8080")
+
+    # Запускаємо фонові нагадування
+    asyncio.create_task(reminder_loop())
+    logging.info("Reminder loop started")
 
     await dp.start_polling(bot)
 
