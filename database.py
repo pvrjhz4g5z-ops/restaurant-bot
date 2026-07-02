@@ -33,6 +33,11 @@ async def init_db():
                 )
             """)
 
+            # Підписка: до якої дати оплачено (новим — 14 днів пробного)
+            await cur.execute("""
+                ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS paid_until TEXT
+            """)
+
             # ── Таблиця бронювань ──
             await cur.execute("""
                 CREATE TABLE IF NOT EXISTS bookings (
@@ -54,6 +59,9 @@ async def init_db():
             # Якщо bookings існувала раніше без restaurant_id — додаємо колонку
             await cur.execute("""
                 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS restaurant_id INTEGER
+            """)
+            await cur.execute("""
+                ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminded BOOLEAN DEFAULT FALSE
             """)
 
             # ── Таблиця додаткових адмінів закладу (команда) ──
@@ -100,14 +108,16 @@ async def init_db():
 # ────────────────── РЕСТОРАНИ ──────────────────
 
 async def create_restaurant(slug, name, admin_id, admin_key, tables_config):
-    """Створює новий заклад. tables_config — список dict-ів [{id,name,seats}, ...]."""
+    """Створює новий заклад з 14-денним пробним періодом."""
+    from datetime import date, timedelta
+    trial_until = (date.today() + timedelta(days=14)).isoformat()
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                """INSERT INTO restaurants (slug, name, admin_id, admin_key, tables_config)
-                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                (slug, name, admin_id, admin_key, json.dumps(tables_config))
+                """INSERT INTO restaurants (slug, name, admin_id, admin_key, tables_config, paid_until)
+                   VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                (slug, name, admin_id, admin_key, json.dumps(tables_config), trial_until)
             )
             row = await cur.fetchone()
             return row[0]
@@ -118,7 +128,7 @@ async def get_restaurant_by_slug(slug):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants WHERE slug = %s",
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants WHERE slug = %s",
                 (slug,)
             )
             row = await cur.fetchone()
@@ -132,7 +142,7 @@ async def get_restaurant_by_admin_key(key):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants WHERE admin_key = %s",
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants WHERE admin_key = %s",
                 (key,)
             )
             row = await cur.fetchone()
@@ -146,7 +156,7 @@ async def get_restaurant_by_id(restaurant_id):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants WHERE id = %s",
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants WHERE id = %s",
                 (restaurant_id,)
             )
             row = await cur.fetchone()
@@ -160,20 +170,57 @@ async def list_restaurants():
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active FROM restaurants ORDER BY id"
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants ORDER BY id"
             )
             rows = await cur.fetchall()
             return [_restaurant_row_to_dict(r) for r in rows]
 
 
 def _restaurant_row_to_dict(row):
-    keys = ['id', 'slug', 'name', 'admin_id', 'admin_key', 'tables_config', 'active']
+    keys = ['id', 'slug', 'name', 'admin_id', 'admin_key', 'tables_config', 'active', 'paid_until']
     d = dict(zip(keys, row))
     try:
         d['tables_config'] = json.loads(d['tables_config']) if d['tables_config'] else []
     except (json.JSONDecodeError, TypeError):
         d['tables_config'] = []
     return d
+
+
+def is_subscription_active(restaurant):
+    """Чи діє підписка (пробний період або оплата)."""
+    from datetime import date
+    paid_until = restaurant.get('paid_until')
+    if not paid_until:
+        return True  # старі заклади без поля — не блокуємо
+    try:
+        return date.fromisoformat(str(paid_until)) >= date.today()
+    except (ValueError, TypeError):
+        return True
+
+
+async def extend_subscription(restaurant_id, months):
+    """Продовжує підписку на N місяців від сьогодні або від поточної дати оплати."""
+    from datetime import date, timedelta
+    r = await get_restaurant_by_id(restaurant_id)
+    if not r:
+        return None
+    base = date.today()
+    if r.get('paid_until'):
+        try:
+            current = date.fromisoformat(str(r['paid_until']))
+            if current > base:
+                base = current
+        except (ValueError, TypeError):
+            pass
+    new_until = (base + timedelta(days=30 * months)).isoformat()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE restaurants SET paid_until = %s WHERE id = %s",
+                (new_until, restaurant_id)
+            )
+    return new_until
 
 
 async def get_default_restaurant_id():
@@ -327,3 +374,31 @@ async def get_all_admin_ids(restaurant):
         if a["telegram_id"] not in ids:
             ids.append(a["telegram_id"])
     return ids
+
+
+# ────────────────── НАГАДУВАННЯ ──────────────────
+
+async def get_bookings_for_reminder(date):
+    """Підтверджені бронювання на дату, яким ще не надсилали нагадування."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """SELECT id, restaurant_id, user_id, table_name, date, time, guests, name
+                   FROM bookings
+                   WHERE date = %s AND status = 'confirmed' AND (reminded IS NOT TRUE)""",
+                (date,)
+            )
+            rows = await cur.fetchall()
+            keys = ['id','restaurant_id','user_id','table_name','date','time','guests','name']
+            return [dict(zip(keys, r)) for r in rows]
+
+
+async def mark_reminded(booking_id):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE bookings SET reminded = TRUE WHERE id = %s",
+                (booking_id,)
+            )
