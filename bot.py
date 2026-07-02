@@ -577,6 +577,12 @@ async def handle_webapp_data(message: Message):
         if not restaurant or not restaurant.get("active", True):
             await message.answer("❌ Заклад не знайдено. Спробуйте ще раз через /start.")
             return
+        if not db.is_subscription_active(restaurant):
+            await message.answer(
+                "😔 На жаль, бронювання в цьому закладі тимчасово недоступне.\n"
+                "Зверніться до закладу напряму."
+            )
+            return
         restaurant_id = restaurant["id"]
 
         VALID_TABLES = {t["name"] for t in restaurant.get("tables_config", [])}
@@ -1210,7 +1216,10 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
       </div>
       Stolyk
     </div>
-    <a href="/register" class="nav-cta">Підключити заклад</a>
+    <div style="display:flex;gap:18px;align-items:center">
+      <a href="/pricing" style="font-size:13.5px;font-weight:500;color:var(--ink2)">Тарифи</a>
+      <a href="/register" class="nav-cta">Підключити заклад</a>
+    </div>
   </div>
 </nav>
 
@@ -1575,6 +1584,282 @@ function copyField(id) {
 </html>"""
 
 
+# ────────────────── СУПЕР-АДМІНКА (власник Stolyk) ──────────────────
+
+def _check_super_key(request):
+    key = request.rel_url.query.get('key', '')
+    return ADMIN_KEY and key == ADMIN_KEY
+
+
+async def super_page(request):
+    return web.Response(text=SUPER_HTML, content_type='text/html')
+
+
+async def super_restaurants(request):
+    if not _check_super_key(request):
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        restaurants = await db.list_restaurants()
+        result = []
+        for r in restaurants:
+            result.append({
+                "id": r["id"],
+                "slug": r["slug"],
+                "name": r["name"],
+                "admin_id": r["admin_id"],
+                "paid_until": r.get("paid_until"),
+                "is_active": db.is_subscription_active(r),
+                "tables_count": len(r.get("tables_config", []))
+            })
+        return web.json_response({"restaurants": result})
+    except Exception:
+        return web.json_response({"restaurants": []})
+
+
+async def super_extend(request):
+    if not _check_super_key(request):
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        data = await request.json()
+        restaurant_id = int(data.get("id"))
+        months = int(data.get("months", 1))
+        if months not in (1, 12):
+            return web.json_response({"error": "bad_months"}, status=400)
+        # Річний тариф = 11 оплачених + 1 безкоштовний = 12 місяців доступу
+        grant = 12 if months == 12 else 1
+        new_until = await db.extend_subscription(restaurant_id, grant)
+        if not new_until:
+            return web.json_response({"error": "not_found"}, status=404)
+
+        # Повідомити власника закладу
+        try:
+            r = await db.get_restaurant_by_id(restaurant_id)
+            if r and r.get("admin_id"):
+                await bot.send_message(
+                    r["admin_id"],
+                    f"✅ Оплату отримано!\n\n"
+                    f"Підписку Stolyk для «{r['name']}» продовжено до {new_until}.\n"
+                    f"Дякуємо, що з нами! 🧡"
+                )
+        except Exception:
+            pass
+
+        return web.json_response({"ok": True, "paid_until": new_until})
+    except Exception:
+        return web.json_response({"error": "failed"}, status=500)
+
+
+async def pricing_page(request):
+    return web.Response(text=PRICING_HTML, content_type='text/html')
+
+
+PRICING_HTML = """<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тарифи · Stolyk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f7f6f4;--card:#fff;--ink:#1c1a17;--ink2:#6f6a63;--ink3:#a39d94;--line:#ece9e4;--accent:#e07020;--accent-dark:#b85510;--accent-soft:#fff3e6;--green:#4a8c45;--green-soft:#f0f6ef;--r:20px}
+html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:44px 20px 70px}
+.head{text-align:center;margin-bottom:36px}
+.head .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:10px}
+.head h1{font-family:'Fraunces',serif;font-size:32px;font-weight:500}
+.head p{font-size:14.5px;color:var(--ink2);margin-top:10px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:28px 24px;position:relative}
+.plan.best{border:2px solid var(--accent)}
+.best-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 14px;border-radius:99px;text-transform:uppercase}
+.plan h2{font-family:'Fraunces',serif;font-size:18px;font-weight:500;margin-bottom:14px}
+.price{font-family:'Fraunces',serif;font-size:38px;font-weight:500;line-height:1}
+.price span{font-size:14px;color:var(--ink2);font-family:'Inter'}
+.per{font-size:12.5px;color:var(--ink2);margin-top:6px}
+.save{display:inline-block;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;margin-top:12px}
+.plan ul{list-style:none;margin-top:18px}
+.plan li{font-size:13.5px;color:var(--ink2);padding:6px 0;display:flex;gap:8px;align-items:flex-start}
+.plan li svg{width:15px;height:15px;color:var(--green);flex-shrink:0;margin-top:2px}
+.trial{background:var(--accent-soft);border-radius:14px;padding:16px 20px;text-align:center;font-size:14px;color:var(--accent-dark);font-weight:500;margin-bottom:28px}
+.pay-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px 24px}
+.pay-card h3{font-family:'Fraunces',serif;font-size:18px;font-weight:500;margin-bottom:6px}
+.pay-card p{font-size:13.5px;color:var(--ink2);line-height:1.6;margin-bottom:14px}
+.pay-box{background:var(--bg);border:1.5px dashed var(--line);border-radius:12px;padding:16px;font-size:14px;text-align:center;color:var(--ink2)}
+.steps{margin-top:14px}
+.steps li{font-size:13.5px;color:var(--ink2);padding:4px 0;list-style:none}
+.steps b{color:var(--ink)}
+@media(max-width:600px){.plans{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow">Тарифи</div>
+    <h1>Простий і чесний тариф</h1>
+    <p>Без комісій з бронювань. Без прихованих платежів.</p>
+  </div>
+
+  <div class="trial">🎁 Перші 14 днів — безкоштовно. Спробуйте без жодних зобов'язань.</div>
+
+  <div class="plans">
+    <div class="plan">
+      <h2>Щомісячно</h2>
+      <div class="price">800 <span>грн/міс</span></div>
+      <div class="per">Оплата раз на місяць</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Telegram-бот бронювань</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Панель управління</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Статистика і нагадування</li>
+      </ul>
+    </div>
+    <div class="plan best">
+      <div class="best-badge">Вигідніше</div>
+      <h2>Щорічно</h2>
+      <div class="price">8 800 <span>грн/рік</span></div>
+      <div class="per">≈ 733 грн/міс</div>
+      <div class="save">1 місяць у подарунок</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Все з місячного тарифу</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Платите за 11 місяців — отримуєте 12</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pay-card">
+    <h3>Як оплатити</h3>
+    <p>Оплата за реквізитами нижче. Після оплати надішліть скріншот квитанції нам у Telegram — і ми одразу активуємо підписку.</p>
+    <div class="pay-box">Реквізити для оплати будуть додані найближчим часом.<br>Питання — пишіть у Telegram.</div>
+    <ul class="steps">
+      <li>1. Оплатіть <b>800 грн</b> (місяць) або <b>8 800 грн</b> (рік)</li>
+      <li>2. Надішліть скріншот оплати і <b>назву вашого закладу</b></li>
+      <li>3. Підписку буде продовжено, вам прийде підтвердження в Telegram</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>"""
+
+
+SUPER_HTML = """<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stolyk · Власник</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f7f6f4;--card:#fff;--ink:#1c1a17;--ink2:#6f6a63;--ink3:#a39d94;--line:#ece9e4;--accent:#e07020;--accent-soft:#fff3e6;--green:#4a8c45;--green-soft:#f0f6ef;--green-line:#bcd9b8;--red:#b8463a;--red-soft:#fbeeed;--red-line:#e6c0bc;--r:16px}
+html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;text-align:center}
+.login-card h1{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin-bottom:16px}
+.login-card input{width:100%;padding:13px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:'Inter';outline:none;margin-bottom:10px;text-align:center}
+.login-card button{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:600;font-family:'Inter';cursor:pointer}
+.login-err{color:var(--red);font-size:13px;margin-top:8px;min-height:16px}
+h1.title{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin-bottom:4px}
+.sub{font-size:13px;color:var(--ink2);margin-bottom:20px}
+.rest{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:11px}
+.rest-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.rest-name{font-family:'Fraunces',serif;font-size:17px;font-weight:500}
+.rest-slug{font-size:12px;color:var(--ink2);margin-top:2px}
+.badge{font-size:11px;font-weight:600;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.badge.active{background:var(--green-soft);color:var(--green);border:1px solid var(--green-line)}
+.badge.expired{background:var(--red-soft);color:var(--red);border:1px solid var(--red-line)}
+.rest-meta{font-size:12.5px;color:var(--ink2);margin-bottom:12px}
+.rest-actions{display:flex;gap:8px}
+.ext-btn{flex:1;padding:10px;border-radius:9px;border:none;font-family:'Inter';font-size:13px;font-weight:600;cursor:pointer}
+.ext-month{background:var(--accent);color:#fff}
+.ext-year{background:var(--ink);color:#fff}
+.ext-btn:disabled{opacity:.5}
+.loading{text-align:center;padding:40px;color:var(--ink3)}
+</style>
+</head>
+<body>
+<div id="login">
+  <div class="login-card">
+    <h1>Stolyk · Власник</h1>
+    <input type="password" id="key-input" placeholder="Головний ключ" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Увійти</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="panel" style="display:none">
+  <div class="wrap">
+    <h1 class="title">Заклади</h1>
+    <div class="sub" id="summary">—</div>
+    <div id="list"><div class="loading">Завантаження…</div></div>
+  </div>
+</div>
+
+<script>
+let KEY = "";
+
+function login(){
+  const k = document.getElementById("key-input").value.trim();
+  if(!k) return;
+  KEY = k;
+  load();
+}
+
+function load(){
+  fetch("/api/super/restaurants?key="+encodeURIComponent(KEY)).then(r=>{
+    if(r.status===401){document.getElementById("login-err").textContent="Невірний ключ";return null}
+    return r.json();
+  }).then(d=>{
+    if(!d)return;
+    try{localStorage.setItem("super_key",KEY)}catch(e){}
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+    render(d.restaurants||[]);
+  }).catch(()=>{document.getElementById("login-err").textContent="Помилка з'єднання"});
+}
+
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function render(list){
+  const active = list.filter(r=>r.is_active).length;
+  document.getElementById("summary").textContent = list.length+" закладів · "+active+" активних";
+  document.getElementById("list").innerHTML = list.map(r=>
+    '<div class="rest">'+
+      '<div class="rest-top">'+
+        '<div><div class="rest-name">'+esc(r.name)+'</div><div class="rest-slug">'+esc(r.slug)+' · ID '+r.id+' · '+r.tables_count+' столів</div></div>'+
+        '<span class="badge '+(r.is_active?'active':'expired')+'">'+(r.is_active?'Активний':'Прострочено')+'</span>'+
+      '</div>'+
+      '<div class="rest-meta">Оплачено до: <b>'+(r.paid_until||'—')+'</b></div>'+
+      '<div class="rest-actions">'+
+        '<button class="ext-btn ext-month" onclick="extend('+r.id+',1,this)">+1 місяць (800 грн)</button>'+
+        '<button class="ext-btn ext-year" onclick="extend('+r.id+',12,this)">+1 рік (8 800 грн)</button>'+
+      '</div>'+
+    '</div>'
+  ).join("");
+}
+
+function extend(id, months, btn){
+  btn.disabled = true;
+  fetch("/api/super/extend?key="+encodeURIComponent(KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id:id, months:months})
+  }).then(r=>r.json()).then(d=>{
+    if(d.ok) load();
+    else { btn.disabled=false; alert(d.error||"Помилка"); }
+  }).catch(()=>{btn.disabled=false});
+}
+
+try{
+  const saved=localStorage.getItem("super_key");
+  if(saved){document.getElementById("key-input").value=saved;login()}
+}catch(e){}
+</script>
+</body>
+</html>"""
+
+
 async def reminder_loop():
     """Фонова задача: кожні 5 хвилин перевіряє бронювання і надсилає нагадування
     клієнтам, у яких візит через 2 години або менше (за київським часом)."""
@@ -1627,6 +1912,10 @@ async def main():
     # Start HTTP server
     app = web.Application()
     app.router.add_get('/', landing_page)
+    app.router.add_get('/pricing', pricing_page)
+    app.router.add_get('/owner', super_page)
+    app.router.add_get('/api/super/restaurants', super_restaurants)
+    app.router.add_post('/api/super/extend', super_extend)
     app.router.add_get('/register', register_page)
     app.router.add_get('/api/check-slug', api_check_slug)
     app.router.add_post('/api/register', api_register)
