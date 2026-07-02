@@ -1047,6 +1047,16 @@ async def api_register(request):
         slug = _slugify(str(data.get("slug", "")))
         admin_id_raw = str(data.get("adminId", "")).strip()
         tables = data.get("tables", [])
+        access_code = str(data.get("accessCode", "")).strip().upper()[:20]
+
+        # ── Перевірка коду доступу (оплата спочатку) ──
+        if not access_code:
+            return web.json_response({"error": "Введіть код доступу. Його ви отримуєте після оплати."}, status=400)
+        code_row = await db.get_access_code(access_code)
+        if not code_row:
+            return web.json_response({"error": "Невірний код доступу. Перевірте код або зверніться в підтримку."}, status=400)
+        if code_row["used"]:
+            return web.json_response({"error": "Цей код вже використано."}, status=400)
 
         if not name or len(name) < 2:
             return web.json_response({"error": "Вкажіть назву закладу (мінімум 2 символи)."}, status=400)
@@ -1080,6 +1090,13 @@ async def api_register(request):
 
         admin_key = secrets.token_urlsafe(16)
         restaurant_id = await db.create_restaurant(slug, name, admin_id, admin_key, clean_tables)
+
+        # Застосовуємо оплачений план з коду
+        from datetime import date as _date, timedelta as _timedelta
+        days = 365 if code_row["plan"] == "year" else 30
+        paid_until = (_date.today() + _timedelta(days=days)).isoformat()
+        await db.set_paid_until(restaurant_id, paid_until)
+        await db.mark_code_used(access_code, slug)
 
         username = await get_bot_username()
         bot_link = f"https://t.me/{username}?start={slug}"
@@ -1244,8 +1261,8 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
 <div class="wrap">
   <section class="hero">
     <div class="eyebrow"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3" r="1.7"/><circle cx="21" cy="12" r="1.7"/><circle cx="12" cy="21" r="1.7"/><circle cx="3" cy="12" r="1.7"/></svg> Бронювання столиків</div>
-    <h1>Столик за <em>хвилину</em>,<br>без дзвінків і хаосу</h1>
-    <p>Клієнти бронюють столик прямо в Telegram — обирають місце на плані залу, дату й час. Ви бачите всі заявки в одній панелі.</p>
+    <h1>Ваш зал <em>повний</em>.<br>Телефон — мовчить.</h1>
+    <p>Поки ви читаєте це, хтось хоче забронювати у вас столик — але не хоче дзвонити. Дайте гостям бронювати за 60 секунд у Telegram, а самі керуйте всім з однієї панелі.</p>
     <div class="hero-actions">
       <a href="/register" class="btn-primary">Підключити свій заклад</a>
       <a href="#how" class="btn-ghost">Як це працює</a>
@@ -1338,11 +1355,9 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
   <section class="section" id="pricing">
     <div class="section-head">
       <div class="eyebrow">Тарифи</div>
-      <h2>Простий і чесний тариф</h2>
-      <p>Без комісій з бронювань. Без прихованих платежів.</p>
+      <h2>Дешевше за одну зайняту вечерю</h2>
+      <p>Один столик на двох окупає Stolyk за вечір. Без комісій з бронювань, без прихованих платежів.</p>
     </div>
-
-    <div class="trial-banner">🎁 Перші 14 днів — безкоштовно. Спробуйте без жодних зобов'язань.</div>
 
     <div class="plans">
       <div class="plan">
@@ -1369,15 +1384,18 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
     </div>
 
     <div class="pay-note">
-      <b>Як оплатити:</b> оплатіть 800 грн (місяць) або 8 800 грн (рік) за реквізитами, надішліть скріншот квитанції і назву вашого закладу нам у Telegram — підписку буде активовано, вам прийде підтвердження.
+      <b>Як підключитися — 3 кроки:</b><br>
+      1️⃣ Оплатіть <b>800 грн</b> (місяць) або <b>8 800 грн</b> (рік) за реквізитами<br>
+      2️⃣ Надішліть скріншот оплати нам у Telegram — отримаєте <b>код доступу</b> протягом кількох хвилин<br>
+      3️⃣ Введіть код при реєстрації — і ваш заклад одразу приймає бронювання 🚀
     </div>
   </section>
 
   <section class="section">
     <div class="cta-band">
-      <h2>Готові прийняти перше бронювання?</h2>
-      <p>Підключення безкоштовне і займає кілька хвилин.</p>
-      <a href="/register" class="btn-primary">Підключити заклад</a>
+      <h2>Кожен день без Stolyk —<br>це втрачені гості</h2>
+      <p>Оплатіть, отримайте код доступу — і вже за 5 хвилин ваш заклад приймає бронювання.</p>
+      <a href="/register" class="btn-primary">Підключити заклад зараз</a>
     </div>
   </section>
 </div>
@@ -1454,7 +1472,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
   <div class="head">
     <div class="eyebrow">Бронювання столиків</div>
     <h1>Підключіть свій заклад</h1>
-    <p>Заповніть форму — і одразу отримаєте готового бота та панель управління.</p>
+    <p>Введіть код доступу, який ви отримали після оплати, заповніть форму — і одразу отримаєте готового бота та панель управління.</p>
   </div>
 
   <div id="form">
@@ -1475,6 +1493,10 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
       <div class="field">
         <label>Ваш Telegram ID (адміна)</label>
         <input type="text" id="f-admin" placeholder="Напишіть @userinfobot щоб дізнатись">
+      </div>
+      <div class="field">
+        <label>Код доступу</label>
+        <input type="text" id="f-code" placeholder="Отримали після оплати" style="text-transform:uppercase">
       </div>
     </div>
 
@@ -1589,6 +1611,7 @@ async function submitRegister() {
   const name = document.getElementById('f-name').value.trim();
   const slug = document.getElementById('f-slug').value.trim();
   const adminId = document.getElementById('f-admin').value.trim();
+  const accessCode = document.getElementById('f-code').value.trim();
   const rows = document.querySelectorAll('.tbl-row');
   const tables = Array.from(rows).map(r => {
     const inputs = r.querySelectorAll('input');
@@ -1598,6 +1621,7 @@ async function submitRegister() {
   if (!name) return showErr('Вкажіть назву закладу.');
   if (!slug) return showErr('Вкажіть посилання закладу.');
   if (!adminId) return showErr('Вкажіть свій Telegram ID.');
+  if (!accessCode) return showErr('Введіть код доступу — його ви отримуєте після оплати.');
   if (tables.length === 0) return showErr('Додайте хоча б один стіл.');
 
   btn.disabled = true;
@@ -1607,7 +1631,7 @@ async function submitRegister() {
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ name, slug, adminId, tables })
+      body: JSON.stringify({ name, slug, adminId, tables, accessCode })
     });
     const d = await res.json();
     if (!res.ok || d.error) {
@@ -1670,6 +1694,31 @@ async def super_restaurants(request):
         return web.json_response({"restaurants": result})
     except Exception:
         return web.json_response({"restaurants": []})
+
+
+async def super_gen_code(request):
+    if not _check_super_key(request):
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        data = await request.json()
+        plan = data.get("plan", "month")
+        if plan not in ("month", "year"):
+            return web.json_response({"error": "bad_plan"}, status=400)
+        code = "ST-" + secrets.token_hex(3).upper()
+        await db.create_access_code(code, plan)
+        return web.json_response({"ok": True, "code": code, "plan": plan})
+    except Exception:
+        return web.json_response({"error": "failed"}, status=500)
+
+
+async def super_codes(request):
+    if not _check_super_key(request):
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        codes = await db.list_unused_codes()
+        return web.json_response({"codes": codes})
+    except Exception:
+        return web.json_response({"codes": []})
 
 
 async def super_extend(request):
@@ -1847,6 +1896,17 @@ h1.title{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin-bott
 
 <div id="panel" style="display:none">
   <div class="wrap">
+    <h1 class="title">Коди доступу</h1>
+    <div class="sub">Згенеруйте код після отримання оплати і надішліть клієнту.</div>
+    <div class="rest" style="margin-bottom:20px">
+      <div class="rest-actions" style="margin-bottom:12px">
+        <button class="ext-btn ext-month" onclick="genCode('month',this)">Код на місяць (800 грн)</button>
+        <button class="ext-btn ext-year" onclick="genCode('year',this)">Код на рік (8 800 грн)</button>
+      </div>
+      <div id="new-code" style="display:none;background:var(--green-soft);border:1px solid var(--green-line);border-radius:10px;padding:14px;text-align:center;font-size:18px;font-weight:600;letter-spacing:.08em;color:var(--green)"></div>
+      <div id="codes-list" style="margin-top:12px;font-size:13px;color:var(--ink2)"></div>
+    </div>
+
     <h1 class="title">Заклади</h1>
     <div class="sub" id="summary">—</div>
     <div id="list"><div class="loading">Завантаження…</div></div>
@@ -1873,6 +1933,7 @@ function load(){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
     render(d.restaurants||[]);
+    loadCodes();
   }).catch(()=>{document.getElementById("login-err").textContent="Помилка з'єднання"});
 }
 
@@ -1905,6 +1966,31 @@ function extend(id, months, btn){
     if(d.ok) load();
     else { btn.disabled=false; alert(d.error||"Помилка"); }
   }).catch(()=>{btn.disabled=false});
+}
+
+function genCode(plan, btn){
+  btn.disabled = true;
+  fetch("/api/super/gencode?key="+encodeURIComponent(KEY),{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({plan:plan})
+  }).then(r=>r.json()).then(d=>{
+    btn.disabled = false;
+    if(d.ok){
+      const box = document.getElementById("new-code");
+      box.style.display = "block";
+      box.textContent = d.code;
+      loadCodes();
+    } else alert(d.error||"Помилка");
+  }).catch(()=>{btn.disabled=false});
+}
+
+function loadCodes(){
+  fetch("/api/super/codes?key="+encodeURIComponent(KEY)).then(r=>r.json()).then(d=>{
+    const codes = d.codes||[];
+    document.getElementById("codes-list").innerHTML = codes.length
+      ? "Невикористані коди: " + codes.map(c=>"<b>"+c.code+"</b> ("+(c.plan==="year"?"рік":"місяць")+")").join(" · ")
+      : "Немає невикористаних кодів";
+  }).catch(()=>{});
 }
 
 try{
@@ -1972,6 +2058,8 @@ async def main():
     app.router.add_get('/owner', super_page)
     app.router.add_get('/api/super/restaurants', super_restaurants)
     app.router.add_post('/api/super/extend', super_extend)
+    app.router.add_post('/api/super/gencode', super_gen_code)
+    app.router.add_get('/api/super/codes', super_codes)
     app.router.add_get('/register', register_page)
     app.router.add_get('/api/check-slug', api_check_slug)
     app.router.add_post('/api/register', api_register)
