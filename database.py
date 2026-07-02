@@ -104,6 +104,18 @@ async def init_db():
                 (default_id,)
             )
 
+            # Таблиця кодів доступу
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS access_codes (
+                    id SERIAL PRIMARY KEY,
+                    code TEXT UNIQUE NOT NULL,
+                    plan TEXT NOT NULL,
+                    used BOOLEAN DEFAULT FALSE,
+                    used_by_slug TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
 
 # ────────────────── РЕСТОРАНИ ──────────────────
 
@@ -401,4 +413,79 @@ async def mark_reminded(booking_id):
             await cur.execute(
                 "UPDATE bookings SET reminded = TRUE WHERE id = %s",
                 (booking_id,)
+            )
+
+
+# ────────────────── КОДИ ДОСТУПУ (оплата → підключення) ──────────────────
+
+async def init_access_codes_table():
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS access_codes (
+                    id SERIAL PRIMARY KEY,
+                    code TEXT UNIQUE NOT NULL,
+                    plan TEXT NOT NULL,
+                    used BOOLEAN DEFAULT FALSE,
+                    used_by_slug TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+
+async def create_access_code(code, plan):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO access_codes (code, plan) VALUES (%s, %s) RETURNING id",
+                (code, plan)
+            )
+            row = await cur.fetchone()
+            return row[0]
+
+
+async def get_access_code(code):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id, code, plan, used FROM access_codes WHERE code = %s",
+                (code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+            return {"id": row[0], "code": row[1], "plan": row[2], "used": row[3]}
+
+
+async def mark_code_used(code, slug):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE access_codes SET used = TRUE, used_by_slug = %s WHERE code = %s",
+                (slug, code)
+            )
+
+
+async def list_unused_codes():
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT code, plan FROM access_codes WHERE used IS NOT TRUE ORDER BY id DESC LIMIT 20"
+            )
+            rows = await cur.fetchall()
+            return [{"code": r[0], "plan": r[1]} for r in rows]
+
+
+async def set_paid_until(restaurant_id, paid_until):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE restaurants SET paid_until = %s WHERE id = %s",
+                (paid_until, restaurant_id)
             )
