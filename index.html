@@ -541,13 +541,16 @@ function renderFloorPlan(tables) {
 
   svgParts.push(`<rect x="8" y="8" width="${W-16}" height="${totalH-8}" rx="16" fill="#ffffff" stroke="#ece9e4" stroke-width="1.5"/>`);
 
-  const windowH = 26;
-  const windowCount = Math.max(2, Math.floor((totalH - 60) / 90));
+  const windowH = 44;
+  const windowCount = Math.max(2, Math.floor((totalH - 60) / 110));
   const windowGap = (totalH - 60) / windowCount;
   for (let i = 0; i < windowCount; i++) {
     const wy = 40 + i * windowGap;
-    svgParts.push(`<rect x="2" y="${wy}" width="5" height="${windowH}" rx="2.5" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
-    svgParts.push(`<rect x="${W-7}" y="${wy}" width="5" height="${windowH}" rx="2.5" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
+    const cy = wy + windowH / 2;
+    svgParts.push(`<rect x="1" y="${wy}" width="13" height="${windowH}" rx="4" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
+    svgParts.push(`<text x="7.5" y="${cy}" text-anchor="middle" font-size="6.5" fill="#5a87a3" font-family="Inter" letter-spacing="0.08em" transform="rotate(-90 7.5 ${cy})">вікно</text>`);
+    svgParts.push(`<rect x="${W-14}" y="${wy}" width="13" height="${windowH}" rx="4" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
+    svgParts.push(`<text x="${W-7.5}" y="${cy}" text-anchor="middle" font-size="6.5" fill="#5a87a3" font-family="Inter" letter-spacing="0.08em" transform="rotate(90 ${W-7.5} ${cy})">вікно</text>`);
   }
 
   svgParts.push(`<rect x="${W/2-46}" y="${totalH-16}" width="92" height="13" rx="6.5" fill="#e07020"/>`);
