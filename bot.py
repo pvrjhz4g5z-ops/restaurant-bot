@@ -1149,7 +1149,13 @@ async def api_register(request):
 
 
 async def landing_page(request):
-    return web.Response(text=LANDING_HTML, content_type='text/html')
+    html = LANDING_HTML
+    try:
+        username = await get_bot_username()
+        html = html.replace("{{BOT_LINK}}", f"https://t.me/{username}")
+    except Exception:
+        html = html.replace("{{BOT_LINK}}", "#")
+    return web.Response(text=html, content_type='text/html')
 
 
 LANDING_HTML = """<!DOCTYPE html>
@@ -1255,6 +1261,19 @@ nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-f
 .plan li svg{width:15px;height:15px;color:var(--green);flex-shrink:0;margin-top:2px}
 .pay-note{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-top:16px;font-size:13.5px;color:var(--ink2);line-height:1.7}
 .pay-note b{color:var(--ink)}
+
+/* FAQ */
+.faq{max-width:640px;margin:0 auto}
+.faq-item{background:var(--bg2);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.faq-q{padding:16px 18px;font-size:14.5px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;user-select:none}
+.faq-q svg{width:16px;height:16px;color:var(--ink3);flex-shrink:0;transition:transform .2s}
+.faq-item.open .faq-q svg{transform:rotate(180deg)}
+.faq-a{display:none;padding:0 18px 16px;font-size:13.5px;color:var(--ink2);line-height:1.65}
+.faq-item.open .faq-a{display:block}
+
+/* CONTACT */
+.contact-strip{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:18px 22px;margin-top:24px;font-size:14px;color:var(--ink2);flex-wrap:wrap}
+.contact-strip a{color:var(--accent-dark);font-weight:600}
 @media(max-width:720px){.plans{grid-template-columns:1fr}}
 .cta-band::after{content:'';position:absolute;top:-30%;right:-15%;width:60%;height:70%;background:radial-gradient(circle,rgba(224,112,32,.35) 0%,transparent 70%)}
 .cta-band h2{position:relative;font-family:'Fraunces',serif;font-size:clamp(24px,4vw,34px);font-weight:400;color:#fff;margin-bottom:14px}
@@ -1294,7 +1313,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
     <p>Поки ви читаєте це, хтось хоче забронювати у вас столик — але не хоче дзвонити. Дайте гостям бронювати за 60 секунд у Telegram, а самі керуйте всім з однієї панелі.</p>
     <div class="hero-actions">
       <a href="/register" class="btn-primary">Підключити свій заклад</a>
-      <a href="#how" class="btn-ghost">Як це працює</a>
+      <a href="{{BOT_LINK}}" target="_blank" class="btn-ghost">🚀 Спробувати демо</a>
     </div>
 
     <div class="mock-wrap">
@@ -1418,6 +1437,44 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
       <span style="display:inline-block;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 18px;margin:8px 0;font-size:16px;font-weight:600;letter-spacing:0.08em">4441 1144 3357 1005</span><br>
       2️⃣ Надішліть скріншот оплати нам у Telegram — отримаєте <b>код доступу</b> протягом кількох хвилин<br>
       3️⃣ Введіть код при реєстрації — і ваш заклад одразу приймає бронювання 🚀
+    </div>
+
+    <div class="contact-strip">
+      <span>Питання чи скріншот оплати?</span>
+      <a href="{{BOT_LINK}}" target="_blank">Напишіть нам у Telegram →</a>
+    </div>
+  </section>
+
+  <section class="section" id="faq">
+    <div class="section-head">
+      <div class="eyebrow">Часті питання</div>
+      <h2>Все, що зазвичай питають</h2>
+    </div>
+    <div class="faq">
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">Чи треба щось встановлювати чи мати свій сайт?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="faq-a">Ні. Все працює всередині Telegram — і для вас, і для гостей. Жодних додатків, сайтів чи обладнання. Потрібен лише смартфон.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">А якщо гість не користується Telegram?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="faq-a">Telegram користуються понад 75% українців — переважна більшість ваших гостей вже там. Решта може, як і раніше, зателефонувати: Stolyk доповнює телефон, а не забороняє його.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">Чи можна змінити столи або назву закладу пізніше?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="faq-a">Так, у будь-який момент у панелі управління: додавайте й прибирайте столи, змінюйте кількість місць і назву — все набуває чинності одразу.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">Як я дізнаюся про нове бронювання?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="faq-a">Миттєве сповіщення в Telegram з кнопками «Підтвердити» / «Скасувати» — вам і всій вашій команді. Плюс усі заявки видно в панелі управління.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">Чи берете ви комісію з бронювань?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="faq-a">Ні. Тільки фіксована підписка — 800 грн/міс або 8 800 грн/рік. Скільки б бронювань не пройшло, ціна не зміниться.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">Скільки часу займає підключення?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="faq-a">Близько 5 хвилин: оплата → код доступу → коротка форма з вашими столами → готово, бот приймає бронювання.</div>
+      </div>
     </div>
   </section>
 
