@@ -116,6 +116,15 @@ async def init_db():
                 )
             """)
 
+            # ── Захист від подвійних бронювань (race condition) ──
+            # Унікальний індекс: не може бути двох активних бронювань
+            # на той самий стіл, дату і час в одному закладі
+            await cur.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_booking
+                ON bookings (restaurant_id, date, time, table_name)
+                WHERE status != 'cancelled'
+            """)
+
 
 # ────────────────── РЕСТОРАНИ ──────────────────
 
@@ -243,20 +252,28 @@ async def get_default_restaurant_id():
 # ────────────────── БРОНЮВАННЯ ──────────────────
 
 async def save_booking(user_id, table_name, date, time, guests, name, phone, note, restaurant_id=None):
+    """Зберігає бронювання. Повертає id, або None якщо стіл вже зайнятий
+    на цей час (спрацював унікальний індекс — конкурентне бронювання)."""
+    import psycopg2
     pool = await get_pool()
     if restaurant_id is None:
         restaurant_id = await get_default_restaurant_id()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
-            await cur.execute(
-                """INSERT INTO bookings
-                   (restaurant_id, user_id, table_name, date, time, guests, name, phone, note)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                   RETURNING id""",
-                (restaurant_id, user_id, table_name, date, time, guests, name, phone, note)
-            )
-            row = await cur.fetchone()
-            return row[0]
+            try:
+                await cur.execute(
+                    """INSERT INTO bookings
+                       (restaurant_id, user_id, table_name, date, time, guests, name, phone, note)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                       RETURNING id""",
+                    (restaurant_id, user_id, table_name, date, time, guests, name, phone, note)
+                )
+                row = await cur.fetchone()
+                return row[0]
+            except psycopg2.errors.UniqueViolation:
+                return None
+            except psycopg2.IntegrityError:
+                return None
 
 
 async def get_booking(booking_id):
@@ -461,13 +478,19 @@ async def get_access_code(code):
 
 
 async def mark_code_used(code, slug):
+    """Атомарно позначає код використаним. Повертає True якщо саме цей виклик
+    його використав, False якщо код вже був використаний (конкурентний запит)."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "UPDATE access_codes SET used = TRUE, used_by_slug = %s WHERE code = %s",
+                """UPDATE access_codes SET used = TRUE, used_by_slug = %s
+                   WHERE code = %s AND used IS NOT TRUE
+                   RETURNING id""",
                 (slug, code)
             )
+            row = await cur.fetchone()
+            return row is not None
 
 
 async def list_unused_codes():
@@ -488,4 +511,15 @@ async def set_paid_until(restaurant_id, paid_until):
             await cur.execute(
                 "UPDATE restaurants SET paid_until = %s WHERE id = %s",
                 (paid_until, restaurant_id)
+            )
+
+
+async def refund_access_code(code):
+    """Повертає код у невикористані (якщо створення закладу не вдалося)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE access_codes SET used = FALSE, used_by_slug = NULL WHERE code = %s",
+                (code,)
             )
