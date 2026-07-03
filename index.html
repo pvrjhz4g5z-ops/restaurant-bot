@@ -548,9 +548,9 @@ function renderFloorPlan(tables) {
     const wy = 40 + i * windowGap;
     const cy = wy + windowH / 2;
     svgParts.push(`<rect x="1" y="${wy}" width="13" height="${windowH}" rx="4" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
-    svgParts.push(`<text x="7.5" y="${cy}" text-anchor="middle" font-size="6.5" fill="#5a87a3" font-family="Inter" letter-spacing="0.08em" transform="rotate(-90 7.5 ${cy})">вікно</text>`);
+    svgParts.push(`<text x="7.5" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="7" font-weight="700" fill="#4a7a99" font-family="Inter" letter-spacing="0.1em" transform="rotate(-90 7.5 ${cy})">ВІКНО</text>`);
     svgParts.push(`<rect x="${W-14}" y="${wy}" width="13" height="${windowH}" rx="4" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
-    svgParts.push(`<text x="${W-7.5}" y="${cy}" text-anchor="middle" font-size="6.5" fill="#5a87a3" font-family="Inter" letter-spacing="0.08em" transform="rotate(90 ${W-7.5} ${cy})">вікно</text>`);
+    svgParts.push(`<text x="${W-7.5}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="7" font-weight="700" fill="#4a7a99" font-family="Inter" letter-spacing="0.1em" transform="rotate(90 ${W-7.5} ${cy})">ВІКНО</text>`);
   }
 
   svgParts.push(`<rect x="${W/2-46}" y="${totalH-16}" width="92" height="13" rx="6.5" fill="#e07020"/>`);
