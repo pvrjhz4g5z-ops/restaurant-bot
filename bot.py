@@ -1435,13 +1435,13 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
       <b>Як підключитися — 3 кроки:</b><br>
       1️⃣ Оплатіть <b>800 грн</b> (місяць) або <b>8 800 грн</b> (рік) на карту:<br>
       <span style="display:inline-block;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 18px;margin:8px 0;font-size:16px;font-weight:600;letter-spacing:0.08em">4441 1144 3357 1005</span><br>
-      2️⃣ Надішліть скріншот оплати нам у Telegram — отримаєте <b>код доступу</b> протягом кількох хвилин<br>
+      2️⃣ Надішліть скріншот оплати на <a href="https://t.me/ttttttiids" target="_blank" style="color:var(--accent-dark);font-weight:600">@ttttttiids</a> — отримаєте <b>код доступу</b> протягом кількох хвилин<br>
       3️⃣ Введіть код при реєстрації — і ваш заклад одразу приймає бронювання 🚀
     </div>
 
     <div class="contact-strip">
       <span>Питання чи скріншот оплати?</span>
-      <a href="{{BOT_LINK}}" target="_blank">Напишіть нам у Telegram →</a>
+      <a href="https://t.me/ttttttiids" target="_blank">Напишіть нам у Telegram →</a>
     </div>
   </section>
 
@@ -1487,7 +1487,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;font-si
   </section>
 </div>
 
-<footer><span class="footer-mark"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3" r="1.7"/><circle cx="21" cy="12" r="1.7"/><circle cx="12" cy="21" r="1.7"/><circle cx="3" cy="12" r="1.7"/></svg></span>© Stolyk · Бронювання столиків через Telegram</footer>
+<footer><div style="margin-bottom:10px"><a href="https://t.me/ttttttiids" target="_blank" style="color:var(--accent-dark);font-weight:500">Підтримка: @ttttttiids</a></div><span class="footer-mark"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3" r="1.7"/><circle cx="21" cy="12" r="1.7"/><circle cx="12" cy="21" r="1.7"/><circle cx="3" cy="12" r="1.7"/></svg></span>© Stolyk · Бронювання столиків через Telegram</footer>
 </body>
 </html>"""
 
@@ -1924,7 +1924,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-
 
   <div class="pay-card">
     <h3>Як оплатити</h3>
-    <p>Оплата за реквізитами нижче. Після оплати надішліть скріншот квитанції нам у Telegram — і ми одразу активуємо підписку.</p>
+    <p>Оплата за реквізитами нижче. Після оплати надішліть скріншот квитанції на <a href="https://t.me/ttttttiids" target="_blank" style="color:var(--accent-dark);font-weight:600">@ttttttiids</a> — і ми одразу активуємо підписку.</p>
     <div class="pay-box" style="font-size:17px;font-weight:600;letter-spacing:0.08em;color:var(--ink)">💳 4441 1144 3357 1005</div>
     <ul class="steps">
       <li>1. Оплатіть <b>800 грн</b> (місяць) або <b>8 800 грн</b> (рік)</li>
