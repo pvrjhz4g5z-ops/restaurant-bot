@@ -655,6 +655,14 @@ async def handle_webapp_data(message: Message):
             restaurant_id=restaurant_id
         )
 
+        # Конкурентне бронювання: хтось встиг забронювати цей стіл мілісекундою раніше
+        if booking_id is None:
+            await message.answer(
+                "❌ На жаль, цей столик щойно забронювали на обраний час. "
+                "Оберіть, будь ласка, інший стіл або час."
+            )
+            return
+
         client_text = (
             f"✅ *Бронювання підтверджено!*\n\n"
             f"🪑 Столик: {table_name}\n"
@@ -1099,14 +1107,25 @@ async def api_register(request):
             clean_tables.append({"id": str(i + 1), "name": tname, "seats": seats})
 
         admin_key = secrets.token_urlsafe(16)
-        restaurant_id = await db.create_restaurant(slug, name, admin_id, admin_key, clean_tables)
+
+        # Атомарно "забираємо" код ПЕРЕД створенням закладу —
+        # два одночасні запити з одним кодом не пройдуть обидва
+        code_claimed = await db.mark_code_used(access_code, slug)
+        if not code_claimed:
+            return web.json_response({"error": "Цей код вже використано."}, status=400)
+
+        try:
+            restaurant_id = await db.create_restaurant(slug, name, admin_id, admin_key, clean_tables)
+        except Exception:
+            # Створення не вдалося (напр., посилання щойно зайняли) — повертаємо код
+            await db.refund_access_code(access_code)
+            return web.json_response({"error": "Це посилання вже зайняте. Оберіть інше."}, status=400)
 
         # Застосовуємо оплачений план з коду
         from datetime import date as _date, timedelta as _timedelta
         days = 365 if code_row["plan"] == "year" else 30
         paid_until = (_date.today() + _timedelta(days=days)).isoformat()
         await db.set_paid_until(restaurant_id, paid_until)
-        await db.mark_code_used(access_code, slug)
 
         username = await get_bot_username()
         bot_link = f"https://t.me/{username}?start={slug}"
