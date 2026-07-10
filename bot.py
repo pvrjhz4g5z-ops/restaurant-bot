@@ -17,6 +17,15 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
+def md_escape(text):
+    """Екранує спецсимволи Markdown щоб імена/побажання не ламали повідомлення."""
+    if text is None:
+        return ""
+    for ch in ['\\', '`', '*', '_', '[', ']', '(', ')', '~', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']:
+        text = str(text).replace(ch, '\\' + ch)
+    return text
+
+
 ADMIN_HTML = """<!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -456,7 +465,7 @@ function removeSettingsTable(i){
   renderSettingsTables();
 }
 
-function saveSettings(){
+function saveSettings(force){
   const btn = document.getElementById("btn-save-settings");
   const msg = document.getElementById("save-msg");
   msg.style.display = "none";
@@ -465,13 +474,15 @@ function saveSettings(){
   btn.disabled = true;
   fetch("/api/admin/settings?key="+encodeURIComponent(ADMIN_KEY),{
     method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name:name, tables:settingsTables})
-  }).then(r=>r.json()).then(d=>{
+    body:JSON.stringify({name:name, tables:settingsTables, force: !!force})
+  }).then(r=>r.json().then(d=>({status:r.status, d}))).then(({status, d})=>{
     btn.disabled = false;
     if(d.ok){
       msg.style.display="inline";
       document.getElementById("restaurant-title").textContent = name;
       setTimeout(()=>{msg.style.display="none"},2500);
+    } else if(status===409 && d.warning==="orphaned_bookings"){
+      if(confirm(d.message)) saveSettings(true);
     } else {
       alert(d.error || "Помилка збереження.");
     }
@@ -559,7 +570,11 @@ async def start(message: Message, command: CommandObject):
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: Message):
     try:
-        data = json.loads(message.web_app_data.data)
+        raw = message.web_app_data.data
+        if not raw or len(raw) > 4000:
+            await message.answer("❌ Некоректні дані бронювання.")
+            return
+        data = json.loads(raw)
         slug = str(data.get("restaurantSlug", "") or db.DEFAULT_SLUG)[:60]
         table_name = str(data.get("tableName", "—"))[:50]
         date = str(data.get("date", "—"))[:20]
@@ -586,8 +601,7 @@ async def handle_webapp_data(message: Message):
         restaurant_id = restaurant["id"]
 
         VALID_TABLES = {t["name"] for t in restaurant.get("tables_config", [])}
-        VALID_TIMES = {'12:00','12:30','13:00','13:30','14:00','14:30',
-                       '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'}
+        VALID_TIMES = set(restaurant.get("time_slots") or db.DEFAULT_TIME_SLOTS)
 
         # Стіл має бути зі списку цього закладу
         if table_name not in VALID_TABLES:
@@ -606,11 +620,12 @@ async def handle_webapp_data(message: Message):
         except ValueError:
             await message.answer("❌ Невірна дата.")
             return
-        # Гостей — число від 1 до 6
+        # Гостей — число від 1 до місткості обраного столу
+        table_seats = next((t["seats"] for t in restaurant.get("tables_config", []) if t["name"] == table_name), 6)
         try:
             guests = int(guests)
-            if guests < 1 or guests > 6:
-                await message.answer("❌ Невірна кількість гостей.")
+            if guests < 1 or guests > table_seats:
+                await message.answer(f"❌ Цей столик розрахований на {table_seats}. Оберіть інший або зменшіть кількість гостей.")
                 return
         except (ValueError, TypeError):
             await message.answer("❌ Невірна кількість гостей.")
@@ -630,12 +645,8 @@ async def handle_webapp_data(message: Message):
             await message.answer("❌ На жаль, цей столик вже заброньований на обраний час. Оберіть інший.")
             return
 
-        # Ліміт активних бронювань на одного користувача (в межах цього закладу)
-        all_bookings = await db.get_all_bookings(restaurant_id=restaurant_id)
-        active_count = sum(
-            1 for b in all_bookings
-            if b.get('user_id') == message.from_user.id and b.get('status') in ('pending', 'confirmed')
-        )
+        # Ліміт активних бронювань на одного користувача (швидкий COUNT у базі)
+        active_count = await db.count_active_bookings_for_user(message.from_user.id, restaurant_id)
         if active_count >= 3:
             await message.answer(
                 "❌ У вас вже є 3 активні бронювання. "
@@ -664,7 +675,7 @@ async def handle_webapp_data(message: Message):
             return
 
         client_text = (
-            f"✅ *Бронювання підтверджено!*\n\n"
+            f"✅ Бронювання прийнято!\n\n"
             f"🪑 Столик: {table_name}\n"
             f"📅 Дата: {date}\n"
             f"🕐 Час: {time}\n"
@@ -674,14 +685,14 @@ async def handle_webapp_data(message: Message):
             + (f"📝 Побажання: {note}\n" if note else "") +
             f"\n🔖 Номер бронювання: #{booking_id}"
         )
-        await message.answer(client_text, parse_mode="Markdown")
+        await message.answer(client_text)
 
         admin_ids = await db.get_all_admin_ids(restaurant)
         if not admin_ids and ADMIN_ID:
             admin_ids = [ADMIN_ID]
         if admin_ids:
             admin_text = (
-                f"🔔 *Нове бронювання #{booking_id}*\n\n"
+                f"🔔 Нове бронювання #{booking_id}\n\n"
                 f"🏠 {restaurant['name']}\n"
                 f"🪑 {table_name} · {guests} ос.\n"
                 f"📅 {date} о {time}\n"
@@ -701,7 +712,6 @@ async def handle_webapp_data(message: Message):
                 try:
                     await bot.send_message(
                         aid, admin_text,
-                        parse_mode="Markdown",
                         reply_markup=builder.as_markup()
                     )
                 except Exception:
@@ -714,41 +724,68 @@ async def handle_webapp_data(message: Message):
 
 @dp.callback_query(F.data.startswith("confirm_"))
 async def confirm_booking(callback: types.CallbackQuery):
-    booking_id = int(callback.data.split("_")[1])
+    try:
+        booking_id = int(callback.data.split("_")[1])
+    except (ValueError, IndexError):
+        await callback.answer("Помилка")
+        return
     booking = await db.get_booking(booking_id)
-    if booking:
-        await db.update_status(booking_id, "confirmed")
-        await callback.message.edit_text(
-            callback.message.text + "\n\n✅ *Підтверджено*",
-            parse_mode="Markdown"
+    if not booking:
+        await callback.answer("Бронювання не знайдено")
+        return
+    restaurant = await db.get_restaurant_by_id(booking.get("restaurant_id"))
+    allowed_ids = await db.get_all_admin_ids(restaurant) if restaurant else []
+    if ADMIN_ID and ADMIN_ID not in allowed_ids:
+        allowed_ids.append(ADMIN_ID)
+    if callback.from_user.id not in allowed_ids:
+        await callback.answer("У вас немає прав на цю дію")
+        return
+    await db.update_status(booking_id, "confirmed")
+    try:
+        await callback.message.edit_text(callback.message.text + "\n\n✅ Підтверджено")
+    except Exception:
+        pass
+    try:
+        await bot.send_message(
+            booking["user_id"],
+            f"✅ Ваше бронювання #{booking_id} підтверджено рестораном!"
         )
-        try:
-            await bot.send_message(
-                booking["user_id"],
-                f"✅ Ваше бронювання #{booking_id} підтверджено рестораном!"
-            )
-        except:
-            pass
+    except Exception:
+        pass
     await callback.answer("Підтверджено!")
 
 
 @dp.callback_query(F.data.startswith("cancel_"))
 async def cancel_booking(callback: types.CallbackQuery):
-    booking_id = int(callback.data.split("_")[1])
+    try:
+        booking_id = int(callback.data.split("_")[1])
+    except (ValueError, IndexError):
+        await callback.answer("Помилка")
+        return
     booking = await db.get_booking(booking_id)
-    if booking:
-        await db.update_status(booking_id, "cancelled")
-        await callback.message.edit_text(
-            callback.message.text + "\n\n❌ *Скасовано*",
-            parse_mode="Markdown"
+    if not booking:
+        await callback.answer("Бронювання не знайдено")
+        return
+    restaurant = await db.get_restaurant_by_id(booking.get("restaurant_id"))
+    allowed_ids = await db.get_all_admin_ids(restaurant) if restaurant else []
+    if ADMIN_ID and ADMIN_ID not in allowed_ids:
+        allowed_ids.append(ADMIN_ID)
+    if callback.from_user.id not in allowed_ids:
+        await callback.answer("У вас немає прав на цю дію")
+        return
+    await db.update_status(booking_id, "cancelled")
+    try:
+        await callback.message.edit_text(callback.message.text + "\n\n❌ Скасовано")
+    except Exception:
+        pass
+    try:
+        await bot.send_message(
+            booking["user_id"],
+            f"❌ На жаль, ваше бронювання #{booking_id} скасовано.\n\n"
+            f"Ви можете обрати інший час або столик — просто відкрийте бота знову 🙂"
         )
-        try:
-            await bot.send_message(
-                booking["user_id"],
-                f"❌ На жаль, ваше бронювання #{booking_id} скасовано."
-            )
-        except:
-            pass
+    except Exception:
+        pass
     await callback.answer("Скасовано!")
 
 
@@ -760,9 +797,24 @@ from collections import defaultdict
 _rate_limit = defaultdict(list)
 RATE_LIMIT_MAX = 30  # requests
 RATE_LIMIT_WINDOW = 60  # seconds
+_last_cleanup = time_module.time()
+
+
+def _cleanup_rate_limit():
+    """Видаляє порожні ключі щоб словник не ріс нескінченно (memory leak)."""
+    global _last_cleanup
+    now = time_module.time()
+    if now - _last_cleanup < 300:
+        return
+    _last_cleanup = now
+    stale = [ip for ip, times in list(_rate_limit.items())
+             if not [t for t in times if now - t < RATE_LIMIT_WINDOW]]
+    for ip in stale:
+        del _rate_limit[ip]
 
 
 def check_rate_limit(ip):
+    _cleanup_rate_limit()
     now = time_module.time()
     _rate_limit[ip] = [t for t in _rate_limit[ip] if now - t < RATE_LIMIT_WINDOW]
     if len(_rate_limit[ip]) >= RATE_LIMIT_MAX:
@@ -970,6 +1022,23 @@ async def admin_settings_update(request):
                 return web.json_response({"error": f"Перевірте стіл №{i+1}."}, status=400)
             clean_tables.append({"id": str(t.get("id") or (i + 1)), "name": tname, "seats": seats})
 
+        # fix2: попередити якщо прибирають/перейменовують стіл з активними бронюваннями
+        force = bool(data.get("force", False))
+        new_names = {t["name"] for t in clean_tables}
+        booked_tables = await db.get_active_booking_tables(restaurant["id"])
+        orphaned = [t for t in booked_tables if t not in new_names]
+        if orphaned and not force:
+            return web.json_response({
+                "warning": "orphaned_bookings",
+                "orphaned": orphaned,
+                "message": (
+                    "На ці столи є активні бронювання: "
+                    + ", ".join(orphaned)
+                    + ". Якщо прибрати або перейменувати їх, ці бронювання лишаться, "
+                    "але столів на плані не буде. Продовжити?"
+                )
+            }, status=409)
+
         await db.update_restaurant(restaurant["id"], name=name, tables_config=clean_tables)
         return web.json_response({"ok": True})
     except Exception as e:
@@ -1023,13 +1092,20 @@ import secrets
 RESERVED_SLUGS = {"default", "admin", "api", "register", "www", "app", "bot", "static"}
 
 _bot_username = None
+_bot_username_ts = 0
 
 
 async def get_bot_username():
-    global _bot_username
-    if _bot_username is None:
-        me = await bot.get_me()
-        _bot_username = me.username
+    global _bot_username, _bot_username_ts
+    now = time_module.time()
+    if _bot_username is None or now - _bot_username_ts > 3600:
+        try:
+            me = await bot.get_me()
+            _bot_username = me.username
+            _bot_username_ts = now
+        except Exception:
+            if _bot_username is None:
+                raise
     return _bot_username
 
 
@@ -2096,12 +2172,14 @@ async def reminder_loop():
     клієнтам, у яких візит через 2 години або менше (за київським часом)."""
     from datetime import datetime, timedelta, timezone
 
-    KYIV_TZ = timezone(timedelta(hours=3))  # Київ (літній час UTC+3)
+    # Правильний часовий пояс з урахуванням літнього/зимового часу
     try:
         from zoneinfo import ZoneInfo
         KYIV_TZ = ZoneInfo("Europe/Kyiv")
     except Exception:
-        pass
+        # Fallback: приблизно визначаємо чи зараз літній час (кві-жов = +3, інакше +2)
+        _m = datetime.now().month
+        KYIV_TZ = timezone(timedelta(hours=3 if 4 <= _m <= 10 else 2))
 
     while True:
         try:
@@ -2115,8 +2193,9 @@ async def reminder_loop():
                 except ValueError:
                     continue
                 minutes_left = (bt - now).total_seconds() / 60
-                # Нагадуємо якщо до візиту від 0 до 120 хвилин
-                if 0 < minutes_left <= 120:
+                # Нагадуємо якщо до візиту від 0 до 120 хв.
+                # (нижня межа -10 хв дає запас, якщо бот був недоступний у момент вікна)
+                if -10 < minutes_left <= 120:
                     restaurant = await db.get_restaurant_by_id(b["restaurant_id"])
                     rest_name = restaurant["name"] if restaurant else "ресторані"
                     try:
