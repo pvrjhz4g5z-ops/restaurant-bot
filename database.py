@@ -7,10 +7,20 @@ DB_URL = os.getenv("DATABASE_URL")
 
 DEFAULT_SLUG = "default"
 
+DEFAULT_TIME_SLOTS = [
+    '12:00','12:30','13:00','13:30','14:00','14:30',
+    '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'
+]
+
 
 async def get_pool():
     global _pool
     if _pool is None:
+        if not DB_URL:
+            raise RuntimeError(
+                "DATABASE_URL не заданий. У Railway додайте змінну оточення "
+                "DATABASE_URL з посиланням на PostgreSQL."
+            )
         _pool = await aiopg.create_pool(DB_URL)
     return _pool
 
@@ -36,6 +46,11 @@ async def init_db():
             # Підписка: до якої дати оплачено (новим — 14 днів пробного)
             await cur.execute("""
                 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS paid_until TEXT
+            """)
+
+            # Слоти часу закладу (JSON-масив "HH:MM"). NULL = дефолтні.
+            await cur.execute("""
+                ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS time_slots TEXT
             """)
 
             # ── Таблиця бронювань ──
@@ -98,6 +113,16 @@ async def init_db():
 
             default_id = row[0]
 
+            # fix8: тримаємо admin_key/admin_id дефолтного закладу в синхроні з env,
+            # щоб зміна ADMIN_KEY у Railway не залишала старий ключ у базі
+            env_admin_id = int(os.getenv("ADMIN_ID", "0"))
+            env_admin_key = os.getenv("ADMIN_KEY", "")
+            if env_admin_key:
+                await cur.execute(
+                    "UPDATE restaurants SET admin_key = %s, admin_id = %s WHERE slug = %s",
+                    (env_admin_key, env_admin_id, DEFAULT_SLUG)
+                )
+
             # Прив'язуємо старі бронювання (без restaurant_id) до дефолтного ресторану
             await cur.execute(
                 "UPDATE bookings SET restaurant_id = %s WHERE restaurant_id IS NULL",
@@ -149,7 +174,7 @@ async def get_restaurant_by_slug(slug):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants WHERE slug = %s",
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until, time_slots FROM restaurants WHERE slug = %s",
                 (slug,)
             )
             row = await cur.fetchone()
@@ -163,7 +188,7 @@ async def get_restaurant_by_admin_key(key):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants WHERE admin_key = %s",
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until, time_slots FROM restaurants WHERE admin_key = %s",
                 (key,)
             )
             row = await cur.fetchone()
@@ -177,7 +202,7 @@ async def get_restaurant_by_id(restaurant_id):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants WHERE id = %s",
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until, time_slots FROM restaurants WHERE id = %s",
                 (restaurant_id,)
             )
             row = await cur.fetchone()
@@ -191,19 +216,24 @@ async def list_restaurants():
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until FROM restaurants ORDER BY id"
+                "SELECT id, slug, name, admin_id, admin_key, tables_config, active, paid_until, time_slots FROM restaurants ORDER BY id"
             )
             rows = await cur.fetchall()
             return [_restaurant_row_to_dict(r) for r in rows]
 
 
 def _restaurant_row_to_dict(row):
-    keys = ['id', 'slug', 'name', 'admin_id', 'admin_key', 'tables_config', 'active', 'paid_until']
+    keys = ['id', 'slug', 'name', 'admin_id', 'admin_key', 'tables_config', 'active', 'paid_until', 'time_slots']
     d = dict(zip(keys, row))
     try:
         d['tables_config'] = json.loads(d['tables_config']) if d['tables_config'] else []
     except (json.JSONDecodeError, TypeError):
         d['tables_config'] = []
+    try:
+        slots = json.loads(d['time_slots']) if d.get('time_slots') else None
+        d['time_slots'] = slots if slots else DEFAULT_TIME_SLOTS
+    except (json.JSONDecodeError, TypeError):
+        d['time_slots'] = DEFAULT_TIME_SLOTS
     return d
 
 
@@ -250,6 +280,20 @@ async def get_default_restaurant_id():
 
 
 # ────────────────── БРОНЮВАННЯ ──────────────────
+
+async def count_active_bookings_for_user(user_id, restaurant_id):
+    """Швидкий підрахунок активних бронювань юзера (без вивантаження всіх)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """SELECT COUNT(*) FROM bookings
+                   WHERE user_id = %s AND restaurant_id = %s
+                   AND status IN ('pending', 'confirmed')""",
+                (user_id, restaurant_id)
+            )
+            row = await cur.fetchone()
+            return row[0] if row else 0
 
 async def save_booking(user_id, table_name, date, time, guests, name, phone, note, restaurant_id=None):
     """Зберігає бронювання. Повертає id, або None якщо стіл вже зайнятий
@@ -341,7 +385,7 @@ async def get_all_bookings(date=None, restaurant_id=None):
 
 # ────────────────── НАЛАШТУВАННЯ ЗАКЛАДУ ──────────────────
 
-async def update_restaurant(restaurant_id, name=None, tables_config=None):
+async def update_restaurant(restaurant_id, name=None, tables_config=None, time_slots=None):
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
@@ -354,6 +398,11 @@ async def update_restaurant(restaurant_id, name=None, tables_config=None):
                 await cur.execute(
                     "UPDATE restaurants SET tables_config = %s WHERE id = %s",
                     (json.dumps(tables_config), restaurant_id)
+                )
+            if time_slots is not None:
+                await cur.execute(
+                    "UPDATE restaurants SET time_slots = %s WHERE id = %s",
+                    (json.dumps(time_slots), restaurant_id)
                 )
 
 
@@ -523,3 +572,19 @@ async def refund_access_code(code):
                 "UPDATE access_codes SET used = FALSE, used_by_slug = NULL WHERE code = %s",
                 (code,)
             )
+
+
+async def get_active_booking_tables(restaurant_id):
+    """Повертає назви столів, на які є активні (не скасовані) бронювання від сьогодні."""
+    from datetime import date as _date
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """SELECT DISTINCT table_name FROM bookings
+                   WHERE restaurant_id = %s AND status != 'cancelled'
+                   AND date >= %s""",
+                (restaurant_id, _date.today().isoformat())
+            )
+            rows = await cur.fetchall()
+            return [r[0] for r in rows]
