@@ -345,6 +345,16 @@ async def update_status(booking_id, status):
             )
 
 
+def _booking_is_expired(date_str, time_str, hours_after=2):
+    """Бронь вважається завершеною через hours_after годин після часу візиту."""
+    from datetime import datetime, timedelta
+    try:
+        bt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except (ValueError, TypeError):
+        return False
+    return datetime.now() > bt + timedelta(hours=hours_after)
+
+
 async def get_booked_slots(date, table_name, restaurant_id=None):
     pool = await get_pool()
     if restaurant_id is None:
@@ -357,7 +367,8 @@ async def get_booked_slots(date, table_name, restaurant_id=None):
                 (date, table_name, restaurant_id)
             )
             rows = await cur.fetchall()
-            return [r[0] for r in rows]
+            # Прострочені броні (час візиту + 2 год минув) не блокують стіл
+            return [r[0] for r in rows if not _booking_is_expired(date, r[0])]
 
 
 async def get_all_bookings(date=None, restaurant_id=None):
