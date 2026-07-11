@@ -101,6 +101,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
 .bk.pending{border-left-color:var(--amber)}
 .bk.confirmed{border-left-color:var(--green)}
 .bk.cancelled{border-left-color:var(--red);opacity:.62}
+.bk.done{border-left-color:var(--ink3);opacity:.6}
 .bk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:11px}
 .bk-table{font-family:'Fraunces',serif;font-size:18px;font-weight:500}
 .bk-when{font-size:13px;color:var(--ink2);margin-top:2px}
@@ -108,6 +109,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
 .badge.pending{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)}
 .badge.confirmed{background:var(--green-soft);color:var(--green);border:1px solid var(--green-line)}
 .badge.cancelled{background:var(--red-soft);color:var(--red);border:1px solid var(--red-line)}
+.badge.done{background:var(--bg2);color:var(--ink3);border:1px solid var(--line)}
 .bk-info{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--ink);margin-bottom:4px}
 .bk-info .row{display:flex;align-items:center;gap:6px}
 .bk-info svg{width:14px;height:14px;color:var(--ink3)}
@@ -224,6 +226,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:'Inter',-apple-syste
           <div class="chip active" data-status="all" onclick="setFilter(this,'all')">Всі</div>
           <div class="chip" data-status="pending" onclick="setFilter(this,'pending')">Очікують</div>
           <div class="chip" data-status="confirmed" onclick="setFilter(this,'confirmed')">Підтверджені</div>
+          <div class="chip" data-status="done" onclick="setFilter(this,'done')">Завершені</div>
         </div>
       </div>
 
@@ -290,7 +293,7 @@ function login(){
   const k = document.getElementById("key-input").value.trim();
   if(!k){return}
   ADMIN_KEY = k;
-  fetch("/api/admin/bookings?key="+encodeURIComponent(k)).then(r=>{
+  fetch("/api/admin/bookings",{headers:{"X-Admin-Key":k}}).then(r=>{
     if(r.status===401){document.getElementById("login-err").textContent="Невірний ключ";return null}
     return r.json();
   }).then(d=>{
@@ -315,7 +318,7 @@ function switchTab(name){
 
 function refreshAll(spin){
   if(spin){const b=document.getElementById("refresh-btn");b.classList.add("spin");setTimeout(()=>b.classList.remove("spin"),700)}
-  fetch("/api/admin/bookings?key="+encodeURIComponent(ADMIN_KEY)).then(r=>r.json()).then(d=>{
+  fetch("/api/admin/bookings",{headers:{"X-Admin-Key":ADMIN_KEY}}).then(r=>r.json()).then(d=>{
     allBookings=d.bookings||[];render();renderStats();
   }).catch(()=>{});
 }
@@ -333,15 +336,22 @@ function render(){
   const q = document.getElementById("search-input").value.trim().toLowerCase();
   let list = allBookings.slice();
 
-  const pending = allBookings.filter(b=>b.status==="pending").length;
-  const confirmed = allBookings.filter(b=>b.status==="confirmed").length;
+  // Активні лічильники не враховують завершені (прострочені) броні
+  const pending = allBookings.filter(b=>b.status==="pending" && !b.expired).length;
+  const confirmed = allBookings.filter(b=>b.status==="confirmed" && !b.expired).length;
   document.getElementById("st-pending").textContent=pending;
   document.getElementById("st-confirmed").textContent=confirmed;
-  document.getElementById("st-total").textContent=allBookings.filter(b=>b.status!=="cancelled").length;
+  document.getElementById("st-total").textContent=allBookings.filter(b=>b.status!=="cancelled" && !b.expired).length;
   document.getElementById("head-sub").textContent=pending>0?(pending+" очікують підтвердження"):"Все опрацьовано";
 
   if(dateF) list=list.filter(b=>b.date===dateF);
-  if(filterStatus!=="all") list=list.filter(b=>b.status===filterStatus);
+  if(filterStatus==="done"){
+    list=list.filter(b=>b.expired && b.status!=="cancelled");
+  } else {
+    // За замовчуванням завершені броні приховані
+    list=list.filter(b=>!b.expired);
+    if(filterStatus!=="all") list=list.filter(b=>b.status===filterStatus);
+  }
   if(q) list=list.filter(b=>
     String(b.name||"").toLowerCase().includes(q) ||
     String(b.phone||"").toLowerCase().includes(q)
@@ -364,13 +374,16 @@ function render(){
     const d=new Date(b.date+"T00:00:00");
     const dateStr=isNaN(d)?b.date:d.toLocaleDateString("uk-UA",{day:"numeric",month:"long"});
     const phoneDigits=String(b.phone||"").replace(/[^0-9+]/g,"");
-    return '<div class="bk '+b.status+'">'+
+    const isDone = b.expired && b.status!=="cancelled";
+    const badgeLabel = isDone ? "Завершено" : (stLabel[b.status]||b.status);
+    const badgeClass = isDone ? "done" : b.status;
+    return '<div class="bk '+(isDone?"done":b.status)+'">'+
       '<div class="bk-top">'+
         '<div>'+
           '<div class="bk-table">'+esc(b.table_name)+'</div>'+
           '<div class="bk-when">'+dateStr+' · '+esc(b.time)+'</div>'+
         '</div>'+
-        '<span class="badge '+b.status+'">'+(stLabel[b.status]||b.status)+'</span>'+
+        '<span class="badge '+badgeClass+'">'+badgeLabel+'</span>'+
       '</div>'+
       '<div class="bk-info">'+
         '<span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'+esc(b.name)+'</span>'+
@@ -378,8 +391,8 @@ function render(){
         '<span class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>'+esc(b.guests)+' гост.</span>'+
       '</div>'+
       (b.note?'<div class="bk-note">«'+esc(b.note)+'»</div>':"")+
-      (b.status==="pending"?'<div class="bk-actions"><button class="act act-confirm" onclick="doAction('+b.id+',\\'confirm\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Підтвердити</button><button class="act act-cancel" onclick="doAction('+b.id+',\\'cancel\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button></div>':"")+
-      (b.status==="confirmed"?'<div class="bk-actions"><button class="act act-cancel" onclick="doAction('+b.id+',\\'cancel\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button></div>':"")+
+      (!isDone && b.status==="pending"?'<div class="bk-actions"><button class="act act-confirm" onclick="doAction('+b.id+',\\'confirm\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Підтвердити</button><button class="act act-cancel" onclick="doAction('+b.id+',\\'cancel\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button></div>':"")+
+      (!isDone && b.status==="confirmed"?'<div class="bk-actions"><button class="act act-cancel" onclick="doAction('+b.id+',\\'cancel\\',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Скасувати</button></div>':"")+
     '</div>';
   }).join("");
 }
@@ -387,8 +400,8 @@ function render(){
 function doAction(id,action,btn){
   const card=btn.closest(".bk");
   card.querySelectorAll(".act").forEach(b=>b.disabled=true);
-  fetch("/api/admin/action?key="+encodeURIComponent(ADMIN_KEY),{
-    method:"POST",headers:{"Content-Type":"application/json"},
+  fetch("/api/admin/action",{
+    method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},
     body:JSON.stringify({id:id,action:action})
   }).then(r=>r.json()).then(d=>{
     if(d.ok){
@@ -441,7 +454,7 @@ function renderStats(){
 }
 
 function loadSettings(){
-  fetch("/api/admin/settings?key="+encodeURIComponent(ADMIN_KEY)).then(r=>r.json()).then(d=>{
+  fetch("/api/admin/settings",{headers:{"X-Admin-Key":ADMIN_KEY}}).then(r=>r.json()).then(d=>{
     document.getElementById("s-name").value = d.name || "";
     settingsTables = (d.tables||[]).map(t=>({id:t.id, name:t.name, seats:t.seats}));
     renderSettingsTables();
@@ -472,8 +485,8 @@ function saveSettings(force){
   const name = document.getElementById("s-name").value.trim();
   if(!name || settingsTables.length===0) { alert("Вкажіть назву і хоча б один стіл."); return; }
   btn.disabled = true;
-  fetch("/api/admin/settings?key="+encodeURIComponent(ADMIN_KEY),{
-    method:"POST",headers:{"Content-Type":"application/json"},
+  fetch("/api/admin/settings",{
+    method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},
     body:JSON.stringify({name:name, tables:settingsTables, force: !!force})
   }).then(r=>r.json().then(d=>({status:r.status, d}))).then(({status, d})=>{
     btn.disabled = false;
@@ -506,8 +519,8 @@ function addTeamMember(){
   const telegramId = idInput.value.trim();
   const label = labelInput.value.trim();
   if(!telegramId){ return; }
-  fetch("/api/admin/team/add?key="+encodeURIComponent(ADMIN_KEY),{
-    method:"POST",headers:{"Content-Type":"application/json"},
+  fetch("/api/admin/team/add",{
+    method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},
     body:JSON.stringify({telegramId:telegramId, label:label})
   }).then(r=>r.json()).then(d=>{
     if(d.ok){
@@ -520,8 +533,8 @@ function addTeamMember(){
 }
 
 function removeTeamMember(id){
-  fetch("/api/admin/team/remove?key="+encodeURIComponent(ADMIN_KEY),{
-    method:"POST",headers:{"Content-Type":"application/json"},
+  fetch("/api/admin/team/remove",{
+    method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":ADMIN_KEY},
     body:JSON.stringify({id:id})
   }).then(r=>r.json()).then(d=>{
     if(d.ok) loadSettings();
@@ -529,6 +542,12 @@ function removeTeamMember(id){
 }
 
 try{
+  // Міграція старих посилань /admin?key=... : беремо ключ, зберігаємо, чистимо URL
+  const urlKey = new URLSearchParams(window.location.search).get("key");
+  if(urlKey){
+    try{localStorage.setItem("admin_key",urlKey)}catch(e){}
+    window.history.replaceState({}, "", window.location.pathname);
+  }
   const saved=localStorage.getItem("admin_key");
   if(saved){document.getElementById("key-input").value=saved;login()}
 }catch(e){}
@@ -859,9 +878,14 @@ async def api_tables(request):
             booked_tables = list(set(
                 b['table_name'] for b in bookings
                 if b['status'] != 'cancelled' and b.get('time') == time
+                and not db._booking_is_expired(b.get('date'), b.get('time'))
             ))
         else:
-            booked_tables = list(set(b['table_name'] for b in bookings if b['status'] != 'cancelled'))
+            booked_tables = list(set(
+                b['table_name'] for b in bookings
+                if b['status'] != 'cancelled'
+                and not db._booking_is_expired(b.get('date'), b.get('time'))
+            ))
         return web.json_response({"booked_tables": booked_tables}, headers={"Access-Control-Allow-Origin": "*"})
     except Exception:
         return web.json_response({"booked_tables": []}, headers={"Access-Control-Allow-Origin": "*"})
@@ -896,7 +920,8 @@ async def _get_restaurant_from_key(request):
     recent_fails = [t for t in _rate_limit.get(fail_key, []) if now - t < RATE_LIMIT_WINDOW]
     if len(recent_fails) >= RATE_LIMIT_MAX:
         return None
-    key = request.rel_url.query.get('key', '') or request.headers.get('X-Admin-Key', '')
+    # Ключ читаємо ТІЛЬКИ з заголовка — щоб він ніколи не потрапляв у логи/URL.
+    key = request.headers.get('X-Admin-Key', '')
     if not key:
         return None
     restaurant = await db.get_restaurant_by_admin_key(key)
@@ -931,6 +956,7 @@ async def admin_bookings(request):
                 "phone": b.get("phone"),
                 "note": b.get("note") or "",
                 "status": b.get("status") or "pending",
+                "expired": db._booking_is_expired(b.get("date"), b.get("time")),
             }
         result = [to_str(b) for b in bookings]
         return web.json_response({"bookings": result, "restaurant_name": restaurant["name"]})
@@ -1209,7 +1235,7 @@ async def api_register(request):
         base_api = request.url.scheme + "://" + request.url.host
         if request.url.port and request.url.port not in (80, 443):
             base_api += f":{request.url.port}"
-        admin_url = f"{base_api}/admin?key={admin_key}"
+        admin_url = f"{base_api}/admin"
 
         return web.json_response({
             "ok": True,
@@ -1830,7 +1856,7 @@ function copyField(id) {
 # ────────────────── СУПЕР-АДМІНКА (власник Stolyk) ──────────────────
 
 def _check_super_key(request):
-    key = request.rel_url.query.get('key', '')
+    key = request.headers.get('X-Admin-Key', '')
     if not ADMIN_KEY or not key:
         return False
     return secrets.compare_digest(key, ADMIN_KEY)
@@ -2089,7 +2115,7 @@ function login(){
 }
 
 function load(){
-  fetch("/api/super/restaurants?key="+encodeURIComponent(KEY)).then(r=>{
+  fetch("/api/super/restaurants",{headers:{"X-Admin-Key":KEY}}).then(r=>{
     if(r.status===401){document.getElementById("login-err").textContent="Невірний ключ";return null}
     return r.json();
   }).then(d=>{
@@ -2124,8 +2150,8 @@ function render(list){
 
 function extend(id, months, btn){
   btn.disabled = true;
-  fetch("/api/super/extend?key="+encodeURIComponent(KEY),{
-    method:"POST",headers:{"Content-Type":"application/json"},
+  fetch("/api/super/extend",{
+    method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":KEY},
     body:JSON.stringify({id:id, months:months})
   }).then(r=>r.json()).then(d=>{
     if(d.ok) load();
@@ -2135,8 +2161,8 @@ function extend(id, months, btn){
 
 function genCode(plan, btn){
   btn.disabled = true;
-  fetch("/api/super/gencode?key="+encodeURIComponent(KEY),{
-    method:"POST",headers:{"Content-Type":"application/json"},
+  fetch("/api/super/gencode",{
+    method:"POST",headers:{"Content-Type":"application/json","X-Admin-Key":KEY},
     body:JSON.stringify({plan:plan})
   }).then(r=>r.json()).then(d=>{
     btn.disabled = false;
@@ -2150,7 +2176,7 @@ function genCode(plan, btn){
 }
 
 function loadCodes(){
-  fetch("/api/super/codes?key="+encodeURIComponent(KEY)).then(r=>r.json()).then(d=>{
+  fetch("/api/super/codes",{headers:{"X-Admin-Key":KEY}}).then(r=>r.json()).then(d=>{
     const codes = d.codes||[];
     document.getElementById("codes-list").innerHTML = codes.length
       ? "Невикористані коди: " + codes.map(c=>"<b>"+c.code+"</b> ("+(c.plan==="year"?"рік":"місяць")+")").join(" · ")
@@ -2159,6 +2185,11 @@ function loadCodes(){
 }
 
 try{
+  const urlKey = new URLSearchParams(window.location.search).get("key");
+  if(urlKey){
+    try{localStorage.setItem("super_key",urlKey)}catch(e){}
+    window.history.replaceState({}, "", window.location.pathname);
+  }
   const saved=localStorage.getItem("super_key");
   if(saved){document.getElementById("key-input").value=saved;login()}
 }catch(e){}
