@@ -693,6 +693,12 @@ async def handle_webapp_data(message: Message):
             )
             return
 
+        # Знімаємо тимчасовий хол — бронювання вже створене
+        try:
+            await db.release_hold(restaurant_id, table_name, date, time, message.from_user.id)
+        except Exception:
+            pass
+
         client_text = (
             f"✅ Бронювання прийнято!\n\n"
             f"🪑 Столик: {table_name}\n"
@@ -862,6 +868,45 @@ async def api_restaurant(request):
                                  headers={"Access-Control-Allow-Origin": "*"})
 
 
+async def api_hold(request):
+    """Створює або знімає тимчасовий хол столу (поки клієнт заповнює форму)."""
+    ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
+    if not check_rate_limit(ip):
+        return web.json_response({"ok": False, "error": "rate_limited"}, status=429,
+                                 headers={"Access-Control-Allow-Origin": "*"})
+    try:
+        data = await request.json()
+        action = data.get("action", "create")
+        slug = str(data.get("r", "") or db.DEFAULT_SLUG)[:60]
+        table_name = str(data.get("tableName", ""))[:40]
+        date = str(data.get("date", ""))[:20]
+        time = str(data.get("time", ""))[:10]
+        try:
+            uid = int(data.get("uid", 0))
+        except (ValueError, TypeError):
+            uid = 0
+
+        if not (table_name and date and time and uid):
+            return web.json_response({"ok": False, "error": "bad_params"}, status=400,
+                                     headers={"Access-Control-Allow-Origin": "*"})
+
+        restaurant = await db.get_restaurant_by_slug(slug)
+        if not restaurant:
+            return web.json_response({"ok": False, "error": "not_found"}, status=404,
+                                     headers={"Access-Control-Allow-Origin": "*"})
+        rid = restaurant["id"]
+
+        if action == "release":
+            await db.release_hold(rid, table_name, date, time, uid)
+            return web.json_response({"ok": True}, headers={"Access-Control-Allow-Origin": "*"})
+
+        ok = await db.create_hold(rid, table_name, date, time, uid)
+        return web.json_response({"ok": ok}, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception:
+        return web.json_response({"ok": False, "error": "failed"}, status=500,
+                                 headers={"Access-Control-Allow-Origin": "*"})
+
+
 async def api_tables(request):
     ip = request.headers.get('X-Forwarded-For', request.remote or 'unknown').split(',')[0]
     if not check_rate_limit(ip):
@@ -870,6 +915,10 @@ async def api_tables(request):
     date = request.rel_url.query.get('date', '')[:20]
     time = request.rel_url.query.get('time', '')[:10]
     slug = request.rel_url.query.get('r', '')[:60] or db.DEFAULT_SLUG
+    try:
+        uid = int(request.rel_url.query.get('uid', '0') or '0')
+    except ValueError:
+        uid = 0
     try:
         restaurant = await db.get_restaurant_by_slug(slug)
         restaurant_id = restaurant["id"] if restaurant else None
@@ -886,6 +935,12 @@ async def api_tables(request):
                 if b['status'] != 'cancelled'
                 and not db._booking_is_expired(b.get('date'), b.get('time'))
             ))
+        # Додаємо столи, які зараз тримає хтось інший (тимчасовий хол)
+        if time and restaurant_id:
+            held = await db.get_held_tables(restaurant_id, date, time, exclude_user_id=uid or None)
+            for t in held:
+                if t not in booked_tables:
+                    booked_tables.append(t)
         return web.json_response({"booked_tables": booked_tables}, headers={"Access-Control-Allow-Origin": "*"})
     except Exception:
         return web.json_response({"booked_tables": []}, headers={"Access-Control-Allow-Origin": "*"})
@@ -2272,6 +2327,7 @@ async def main():
     app.router.add_post('/api/register', api_register)
     app.router.add_get('/api/restaurant', api_restaurant)
     app.router.add_get('/api/tables', api_tables)
+    app.router.add_post('/api/hold', api_hold)
     app.router.add_get('/api/slots', api_slots)
     app.router.add_get('/admin', admin_page)
     app.router.add_get('/api/admin/bookings', admin_bookings)
