@@ -150,6 +150,24 @@ async def init_db():
                 WHERE status != 'cancelled'
             """)
 
+            # ── Тимчасові холди столів (поки клієнт заповнює форму) ──
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS table_holds (
+                    id SERIAL PRIMARY KEY,
+                    restaurant_id INTEGER NOT NULL,
+                    table_name TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    time TEXT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    expires_at TIMESTAMP NOT NULL
+                )
+            """)
+            # Один активний хол на комбінацію стіл+дата+час
+            await cur.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_hold
+                ON table_holds (restaurant_id, date, time, table_name)
+            """)
+
 
 # ────────────────── РЕСТОРАНИ ──────────────────
 
@@ -597,5 +615,91 @@ async def get_active_booking_tables(restaurant_id):
                    AND date >= %s""",
                 (restaurant_id, _date.today().isoformat())
             )
+            rows = await cur.fetchall()
+            return [r[0] for r in rows]
+
+
+# ────────────────── ТИМЧАСОВІ ХОЛДИ СТОЛІВ ──────────────────
+
+HOLD_MINUTES = 3
+
+async def create_hold(restaurant_id, table_name, date, time, user_id):
+    """Резервує стіл за користувачем на HOLD_MINUTES хвилин.
+    Повертає True якщо вдалось, False якщо стіл вже тримає ХТОСЬ ІНШИЙ або вже заброньований."""
+    from datetime import datetime, timedelta
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            # Спершу прибираємо протерміновані холди
+            await cur.execute("DELETE FROM table_holds WHERE expires_at < CURRENT_TIMESTAMP")
+
+            # Чи вже є активне бронювання на цей слот?
+            await cur.execute(
+                """SELECT 1 FROM bookings
+                   WHERE restaurant_id=%s AND date=%s AND time=%s AND table_name=%s
+                   AND status != 'cancelled' LIMIT 1""",
+                (restaurant_id, date, time, table_name)
+            )
+            if await cur.fetchone():
+                return False
+
+            expires = datetime.now() + timedelta(minutes=HOLD_MINUTES)
+            # Пробуємо створити хол. Якщо вже є хол іншого юзера — оновлюємо тільки якщо він наш або протермінований
+            try:
+                await cur.execute(
+                    """INSERT INTO table_holds (restaurant_id, table_name, date, time, user_id, expires_at)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (restaurant_id, table_name, date, time, user_id, expires)
+                )
+                return True
+            except Exception:
+                # Хол уже існує — перевіряємо чий
+                await cur.execute(
+                    """SELECT user_id FROM table_holds
+                       WHERE restaurant_id=%s AND date=%s AND time=%s AND table_name=%s""",
+                    (restaurant_id, date, time, table_name)
+                )
+                row = await cur.fetchone()
+                if row and row[0] == user_id:
+                    # Наш власний хол — продовжуємо
+                    await cur.execute(
+                        """UPDATE table_holds SET expires_at=%s
+                           WHERE restaurant_id=%s AND date=%s AND time=%s AND table_name=%s""",
+                        (expires, restaurant_id, date, time, table_name)
+                    )
+                    return True
+                return False
+
+
+async def release_hold(restaurant_id, table_name, date, time, user_id):
+    """Знімає хол (наприклад після успішного бронювання або скасування вибору)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """DELETE FROM table_holds
+                   WHERE restaurant_id=%s AND date=%s AND time=%s AND table_name=%s AND user_id=%s""",
+                (restaurant_id, date, time, table_name, user_id)
+            )
+
+
+async def get_held_tables(restaurant_id, date, time, exclude_user_id=None):
+    """Повертає назви столів, які зараз тримає ХТОСЬ ІНШИЙ (активні холди)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("DELETE FROM table_holds WHERE expires_at < CURRENT_TIMESTAMP")
+            if exclude_user_id is not None:
+                await cur.execute(
+                    """SELECT table_name FROM table_holds
+                       WHERE restaurant_id=%s AND date=%s AND time=%s AND user_id != %s""",
+                    (restaurant_id, date, time, exclude_user_id)
+                )
+            else:
+                await cur.execute(
+                    """SELECT table_name FROM table_holds
+                       WHERE restaurant_id=%s AND date=%s AND time=%s""",
+                    (restaurant_id, date, time)
+                )
             rows = await cur.fetchall()
             return [r[0] for r in rows]
