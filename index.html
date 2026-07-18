@@ -502,6 +502,7 @@ html, body {
 <script>
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff'); tg.setBackgroundColor('#ffffff'); }
+const USER_ID = tg?.initDataUnsafe?.user?.id || Math.floor(Math.random()*1e9);
 
 const TIMES = ['12:00','12:30','13:00','13:30','14:00','14:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'];
 const API_BASE = 'https://web-production-aff79.up.railway.app';
@@ -679,7 +680,16 @@ function formatPhone(input) {
   input.value = f;
 }
 
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  // Знімаємо хол — клієнт передумав, стіл знову вільний для інших
+  if (state.tableName && state.date && state.time) {
+    fetch(`${API_BASE}/api/hold`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'release', r: RESTAURANT_SLUG, tableName: state.tableName, date: state.date, time: state.time, uid: USER_ID })
+    }).catch(()=>{});
+  }
+}
 
 function seatWord(n) {
   const mod10 = n % 10, mod100 = n % 100;
@@ -715,7 +725,7 @@ if (window.visualViewport) {
 
 async function loadTableStatuses(date, time) {
   try {
-    const res = await fetch(`${API_BASE}/api/tables?date=${date}&time=${encodeURIComponent(time)}&r=${encodeURIComponent(RESTAURANT_SLUG)}`);
+    const res = await fetch(`${API_BASE}/api/tables?date=${date}&time=${encodeURIComponent(time)}&r=${encodeURIComponent(RESTAURANT_SLUG)}&uid=${USER_ID}`);
     if (!res.ok) { applyPulse(); return; }
     const data = await res.json();
     const booked = data.booked_tables || [];
@@ -812,15 +822,31 @@ function goToFloor() {
     `Оберіть вільний столик на ${dateStr}, ${state.time}`;
 }
 
-function onTableClick(el) {
+async function onTableClick(el) {
   if (el.classList.contains('booked')) return;
   const seats = parseInt(el.dataset.seats);
   if (state.guests > seats) {
     alert(`Цей стіл розрахований на ${seats} ${seatWord(seats)}, а гостей — ${state.guests}. Оберіть інший стіл.`);
     return;
   }
+  const tableName = el.dataset.name;
+
+  // Спроба поставити тимчасовий хол (3 хв) — щоб інші не встигли забронювати
+  try {
+    const res = await fetch(`${API_BASE}/api/hold`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'create', r: RESTAURANT_SLUG, tableName, date: state.date, time: state.time, uid: USER_ID })
+    });
+    const hd = await res.json();
+    if (!hd.ok) {
+      alert('Цей столик щойно обрав інший гість. Оберіть, будь ласка, інший.');
+      loadTableStatuses(state.date, state.time);
+      return;
+    }
+  } catch(e) { /* якщо мережа впала — продовжуємо, фінальна перевірка все одно на бекенді */ }
+
   state.tableId = el.dataset.id;
-  state.tableName = el.dataset.name;
+  state.tableName = tableName;
   state.tableSeats = seats;
 
   document.getElementById('modal-title').innerHTML = esc(state.tableName).replace(/(\d+)/g, '<span class="num">$1</span>');
