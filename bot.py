@@ -1265,24 +1265,21 @@ async def api_register(request):
 
         admin_key = secrets.token_urlsafe(16)
 
-        # Атомарно "забираємо" код ПЕРЕД створенням закладу —
-        # два одночасні запити з одним кодом не пройдуть обидва
-        code_claimed = await db.mark_code_used(access_code, slug)
-        if not code_claimed:
-            return web.json_response({"error": "Цей код вже використано."}, status=400)
-
+        # Атомарна реєстрація: код + заклад + оплата в одній транзакції.
+        # При будь-якому збої відкочується повністю (код лишається невикористаним).
         try:
-            restaurant_id = await db.create_restaurant(slug, name, admin_id, admin_key, clean_tables)
+            restaurant_id, paid_until = await db.register_restaurant_with_code(
+                slug, name, admin_id, admin_key, clean_tables, access_code, code_row["plan"]
+            )
+        except ValueError as e:
+            reason = str(e)
+            if reason == "code_used":
+                return web.json_response({"error": "Цей код вже використано."}, status=400)
+            if reason == "slug_taken":
+                return web.json_response({"error": "Це посилання вже зайняте. Оберіть інше."}, status=400)
+            return web.json_response({"error": "Не вдалося зареєструвати заклад. Спробуйте ще раз."}, status=400)
         except Exception:
-            # Створення не вдалося (напр., посилання щойно зайняли) — повертаємо код
-            await db.refund_access_code(access_code)
-            return web.json_response({"error": "Це посилання вже зайняте. Оберіть інше."}, status=400)
-
-        # Застосовуємо оплачений план з коду
-        from datetime import date as _date, timedelta as _timedelta
-        days = 365 if code_row["plan"] == "year" else 30
-        paid_until = (_date.today() + _timedelta(days=days)).isoformat()
-        await db.set_paid_until(restaurant_id, paid_until)
+            return web.json_response({"error": "Не вдалося зареєструвати заклад. Спробуйте ще раз."}, status=500)
 
         username = await get_bot_username()
         bot_link = f"https://t.me/{username}?start={slug}"
@@ -2301,6 +2298,16 @@ async def reminder_loop():
         await asyncio.sleep(300)  # 5 хвилин
 
 
+async def holds_cleanup_loop():
+    """Фонове очищення протермінованих холдів столів (раз на 90 секунд)."""
+    while True:
+        try:
+            await db.cleanup_expired_holds()
+        except Exception as e:
+            logging.error(f"Holds cleanup error: {e}")
+        await asyncio.sleep(90)
+
+
 async def main():
     await db.init_db()
     await bot.delete_webhook(drop_pending_updates=True)
@@ -2345,6 +2352,8 @@ async def main():
     # Запускаємо фонові нагадування
     asyncio.create_task(reminder_loop())
     logging.info("Reminder loop started")
+    asyncio.create_task(holds_cleanup_loop())
+    logging.info("Holds cleanup loop started")
 
     await dp.start_polling(bot)
 
