@@ -624,15 +624,12 @@ async def get_active_booking_tables(restaurant_id):
 HOLD_MINUTES = 3
 
 async def create_hold(restaurant_id, table_name, date, time, user_id):
-    """Резервує стіл за користувачем на HOLD_MINUTES хвилин.
+    """Резервує стіл за користувачем на HOLD_MINUTES хвилин (атомарно).
     Повертає True якщо вдалось, False якщо стіл вже тримає ХТОСЬ ІНШИЙ або вже заброньований."""
     from datetime import datetime, timedelta
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
-            # Спершу прибираємо протерміновані холди
-            await cur.execute("DELETE FROM table_holds WHERE expires_at < CURRENT_TIMESTAMP")
-
             # Чи вже є активне бронювання на цей слот?
             await cur.execute(
                 """SELECT 1 FROM bookings
@@ -644,31 +641,23 @@ async def create_hold(restaurant_id, table_name, date, time, user_id):
                 return False
 
             expires = datetime.now() + timedelta(minutes=HOLD_MINUTES)
-            # Пробуємо створити хол. Якщо вже є хол іншого юзера — оновлюємо тільки якщо він наш або протермінований
-            try:
-                await cur.execute(
-                    """INSERT INTO table_holds (restaurant_id, table_name, date, time, user_id, expires_at)
-                       VALUES (%s, %s, %s, %s, %s, %s)""",
-                    (restaurant_id, table_name, date, time, user_id, expires)
-                )
-                return True
-            except Exception:
-                # Хол уже існує — перевіряємо чий
-                await cur.execute(
-                    """SELECT user_id FROM table_holds
-                       WHERE restaurant_id=%s AND date=%s AND time=%s AND table_name=%s""",
-                    (restaurant_id, date, time, table_name)
-                )
-                row = await cur.fetchone()
-                if row and row[0] == user_id:
-                    # Наш власний хол — продовжуємо
-                    await cur.execute(
-                        """UPDATE table_holds SET expires_at=%s
-                           WHERE restaurant_id=%s AND date=%s AND time=%s AND table_name=%s""",
-                        (expires, restaurant_id, date, time, table_name)
-                    )
-                    return True
-                return False
+            # Атомарно: вставляємо хол АБО перезаписуємо, якщо існуючий протермінований
+            # чи належить цьому ж юзеру. Якщо активний хол іншого юзера — ON CONFLICT
+            # оновить рядок лише коли виконується WHERE, інакше нічого не зміниться.
+            await cur.execute(
+                """INSERT INTO table_holds
+                       (restaurant_id, table_name, date, time, user_id, expires_at)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (restaurant_id, date, time, table_name)
+                   DO UPDATE SET user_id = EXCLUDED.user_id, expires_at = EXCLUDED.expires_at
+                   WHERE table_holds.expires_at < CURRENT_TIMESTAMP
+                      OR table_holds.user_id = EXCLUDED.user_id
+                   RETURNING user_id""",
+                (restaurant_id, table_name, date, time, user_id, expires)
+            )
+            row = await cur.fetchone()
+            # RETURNING поверне рядок лише якщо INSERT або дозволений UPDATE відбувся
+            return bool(row and row[0] == user_id)
 
 
 async def release_hold(restaurant_id, table_name, date, time, user_id):
@@ -684,22 +673,78 @@ async def release_hold(restaurant_id, table_name, date, time, user_id):
 
 
 async def get_held_tables(restaurant_id, date, time, exclude_user_id=None):
-    """Повертає назви столів, які зараз тримає ХТОСЬ ІНШИЙ (активні холди)."""
+    """Повертає назви столів, які зараз тримає ХТОСЬ ІНШИЙ (активні, не протерміновані холди)."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
-            await cur.execute("DELETE FROM table_holds WHERE expires_at < CURRENT_TIMESTAMP")
             if exclude_user_id is not None:
                 await cur.execute(
                     """SELECT table_name FROM table_holds
-                       WHERE restaurant_id=%s AND date=%s AND time=%s AND user_id != %s""",
+                       WHERE restaurant_id=%s AND date=%s AND time=%s AND user_id != %s
+                       AND expires_at >= CURRENT_TIMESTAMP""",
                     (restaurant_id, date, time, exclude_user_id)
                 )
             else:
                 await cur.execute(
                     """SELECT table_name FROM table_holds
-                       WHERE restaurant_id=%s AND date=%s AND time=%s""",
+                       WHERE restaurant_id=%s AND date=%s AND time=%s
+                       AND expires_at >= CURRENT_TIMESTAMP""",
                     (restaurant_id, date, time)
                 )
             rows = await cur.fetchall()
             return [r[0] for r in rows]
+
+
+async def cleanup_expired_holds():
+    """Видаляє протерміновані холди. Викликається фоновою задачею."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("DELETE FROM table_holds WHERE expires_at < CURRENT_TIMESTAMP")
+
+
+# ────────────────── АТОМАРНА РЕЄСТРАЦІЯ (код + заклад в одній транзакції) ──────────────────
+
+async def register_restaurant_with_code(slug, name, admin_id, admin_key, tables_config, access_code, plan):
+    """Атомарно: забирає код доступу, створює заклад, ставить оплату.
+    Все в ОДНІЙ транзакції — при будь-якому збої відкочується повністю.
+    Повертає (restaurant_id, paid_until) або кидає ValueError з причиною."""
+    from datetime import date, timedelta
+    days = 365 if plan == "year" else 30
+    trial_until = (date.today() + timedelta(days=days)).isoformat()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("BEGIN")
+            try:
+                # 1. Забираємо код (тільки якщо ще не використаний)
+                await cur.execute(
+                    """UPDATE access_codes SET used = TRUE, used_by_slug = %s
+                       WHERE code = %s AND used IS NOT TRUE RETURNING id""",
+                    (slug, access_code)
+                )
+                if not await cur.fetchone():
+                    raise ValueError("code_used")
+
+                # 2. Перевіряємо, що slug вільний
+                await cur.execute("SELECT 1 FROM restaurants WHERE slug = %s", (slug,))
+                if await cur.fetchone():
+                    raise ValueError("slug_taken")
+
+                # 3. Створюємо заклад одразу з оплаченим періодом
+                await cur.execute(
+                    """INSERT INTO restaurants
+                           (slug, name, admin_id, admin_key, tables_config, paid_until)
+                       VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                    (slug, name, admin_id, admin_key, json.dumps(tables_config), trial_until)
+                )
+                restaurant_id = (await cur.fetchone())[0]
+
+                await cur.execute("COMMIT")
+                return restaurant_id, trial_until
+            except Exception:
+                try:
+                    await cur.execute("ROLLBACK")
+                except Exception:
+                    pass
+                raise
