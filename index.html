@@ -682,13 +682,7 @@ function formatPhone(input) {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
-  // Знімаємо хол — клієнт передумав, стіл знову вільний для інших
-  if (state.tableName && state.date && state.time) {
-    fetch(`${API_BASE}/api/hold`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'release', r: RESTAURANT_SLUG, tableName: state.tableName, date: state.date, time: state.time, uid: USER_ID })
-    }).catch(()=>{});
-  }
+  releaseCurrentHold();
 }
 
 function seatWord(n) {
@@ -758,7 +752,21 @@ function applyPulse() {
 }
 
 /* ── ЕКРАН 1: дата / час / гості ── */
+function releaseCurrentHold() {
+  // Знімає активний хол, якщо він є (при виході з екрану бронювання)
+  if (state.tableName && state.date && state.time) {
+    fetch(`${API_BASE}/api/hold`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'release', r: RESTAURANT_SLUG, tableName: state.tableName, date: state.date, time: state.time, uid: USER_ID })
+    }).catch(()=>{});
+    state.tableName = '';
+    state.tableId = null;
+  }
+}
+
 function showPrebooking() {
+  // Якщо повертаємось із плану залу — знімаємо хол
+  releaseCurrentHold();
   document.getElementById('landing').style.display = 'none';
   document.getElementById('floorpage').style.display = 'none';
   document.getElementById('prebooking').style.display = 'block';
@@ -776,6 +784,7 @@ function showPrebooking() {
 }
 
 document.getElementById('pb-date').addEventListener('change', e => {
+  releaseCurrentHold();
   state.date = e.target.value;
   checkPbForm();
 });
@@ -793,6 +802,7 @@ function buildPbTimes() {
 }
 
 function selectPbTime(t, el) {
+  releaseCurrentHold();
   document.querySelectorAll('#pb-time-grid .time-btn').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel');
   state.time = t;
