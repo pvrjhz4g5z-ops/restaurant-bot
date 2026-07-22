@@ -1,917 +1,356 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Бронювання</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #ffffff;
-  --bg2: #f7f6f4;
-  --ink: #1c1a17;
-  --ink2: #6f6a63;
-  --ink3: #a39d94;
-  --line: #ece9e4;
-  --line2: #ddd8d0;
-  --accent: #e07020;
-  --accent-dark: #b85510;
-  --accent-soft: #fff3e6;
-  --free: #4a8c45;
-  --free-soft: #f0f6ef;
-  --free-line: #bcd9b8;
-  --busy: #b8463a;
-  --busy-soft: #fbeeed;
-  --busy-line: #e6c0bc;
-  --r: 16px;
-  --r-sm: 11px;
-  --shadow: 0 1px 2px rgba(28,26,23,0.04), 0 8px 24px rgba(28,26,23,0.06);
-  --shadow-lg: 0 2px 8px rgba(28,26,23,0.06), 0 20px 48px rgba(28,26,23,0.12);
-}
-
-html, body {
-  height: 100%;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -webkit-text-size-adjust: 100%;
-  overflow-x: hidden;
-  overscroll-behavior-x: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
-
-/* ─────── LANDING ─────── */
-#landing {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 20px;
-  background: var(--bg);
-}
-
-.landing-card {
-  width: 100%;
-  max-width: 360px;
-  aspect-ratio: 3/4;
-  background: linear-gradient(160deg, #e07020 0%, #b85510 100%);
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 40px 32px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-}
-.landing-card::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.1) 0%, transparent 65%);
-  pointer-events: none;
-}
-.landing-logo { position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 1; }
-.landing-logo-mark { width: 36px; height: 1px; background: rgba(255,255,255,0.4); margin: 0 auto 16px; }
-.landing-name { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
-.landing-tagline {
-  position: relative; z-index: 1;
-  font-size: 27px; font-weight: 300;
-  letter-spacing: -0.02em; color: #fff;
-  text-align: center; line-height: 1.3; margin-bottom: 36px;
-}
-
-.btn-book {
-  position: relative; z-index: 1;
-  width: 100%;
-  padding: 16px;
-  background: #fff;
-  color: var(--accent-dark);
-  border: none;
-  border-radius: 12px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-.btn-book:active { transform: scale(0.985); }
-
-/* ─────── FLOOR ─────── */
-#floorpage { display: none; min-height: 100vh; background: var(--bg); }
-
-.floor-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(255,255,255,0.86);
-  backdrop-filter: saturate(180%) blur(12px);
-  border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; z-index: 5;
-}
-.back-btn {
-  background: none; border: none;
-  color: var(--ink2); font-size: 14px;
-  cursor: pointer; font-weight: 500;
-  display: flex; align-items: center; gap: 5px;
-  padding: 4px 0;
-}
-.back-btn svg { width: 15px; height: 15px; }
-.floor-title {
-  font-family: 'Fraunces', serif;
-  font-size: 16px; font-weight: 500;
-  color: var(--ink);
-}
-.floor-header .spacer { width: 54px; }
-
-.tap-hint {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 16px 16px 4px;
-  padding: 12px 16px;
-  background: var(--accent-soft);
-  border-radius: var(--r-sm);
-  font-size: 15px;
-  color: var(--accent-dark);
-  font-weight: 500;
-}
-.tap-hint svg { width: 17px; height: 17px; flex-shrink: 0; animation: nudge 1.8s ease-in-out infinite; }
-@keyframes nudge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-
-#prebooking { display: none; min-height: 100vh; background: var(--bg); }
-.pb-wrap { padding: 20px 20px 40px; max-width: 480px; margin: 0 auto; }
-.pb-hint { font-size: 15px; color: var(--ink); font-weight: 500; margin-bottom: 10px; }
-
-.modal-summary {
-  display: flex; gap: 16px;
-  padding: 12px 14px;
-  background: var(--bg2);
-  border-radius: var(--r-sm);
-  font-size: 13px; color: var(--ink2);
-  margin-top: 4px;
-}
-.modal-summary b { color: var(--ink); font-weight: 600; }
-
-.floor-wrap { padding: 12px 16px; }
-.floor-loading { text-align: center; padding: 60px 20px; color: var(--ink3); font-size: 13px; }
-.floor-svg { width: 100%; height: auto; display: block; }
-
-.legend {
-  display: flex; gap: 20px;
-  padding: 4px 16px 20px;
-  justify-content: center;
-}
-.legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink2); }
-.legend-dot { width: 11px; height: 11px; border-radius: 4px; }
-
-/* tables */
-.tbl, .seat { cursor: pointer; }
-.tbl .tbl-rect { fill: var(--free-soft); stroke: var(--free-line); stroke-width: 1.25; transition: all 0.18s; }
-.tbl .tbl-num { fill: var(--free); font-weight: 400; letter-spacing: 0.02em; }
-.tbl .tbl-action { fill: var(--free); font-weight: 500; }
-.tbl .tbl-seats { fill: #8ab586; }
-.tbl:active .tbl-rect { transform-box: fill-box; transform-origin: center; transform: scale(0.97); }
-.tbl.booked { cursor: not-allowed; }
-.tbl.booked .tbl-rect { fill: var(--busy-soft); stroke: var(--busy-line); }
-.tbl.booked .tbl-num, .tbl.booked .tbl-action { fill: var(--busy); }
-.tbl.booked .tbl-seats { fill: #d09a95; }
-.tbl.pulse .tbl-rect { animation: pulse 1.7s ease-in-out infinite; }
-@keyframes pulse { 0%,100% { stroke-width: 1.25; } 50% { stroke-width: 2.75; stroke: var(--free); } }
-
-.seat .seat-c { fill: var(--free-soft); stroke: var(--free-line); stroke-width: 1.25; transition: all 0.18s; }
-.seat .seat-n { fill: var(--free); font-weight: 400; }
-.seat.booked { cursor: not-allowed; }
-.seat.booked .seat-c { fill: var(--busy-soft); stroke: var(--busy-line); }
-.seat.booked .seat-n { fill: var(--busy); }
-
-/* ─────── MODAL ─────── */
-#modal {
-  display: none;
-  position: fixed; inset: 0; z-index: 100;
-  background: rgba(28,26,23,0.45);
-  backdrop-filter: blur(3px);
-  align-items: flex-end; justify-content: center;
-}
-#modal.open { display: flex; }
-
-.modal-sheet {
-  width: 100%; max-width: 480px;
-  background: var(--bg);
-  border-radius: 26px 26px 0 0;
-  max-height: 94vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  touch-action: pan-y;
-  position: relative;
-  padding: 14px 24px 42vh;
-  box-shadow: 0 -8px 40px rgba(28,26,23,0.16);
-  animation: sheetUp 0.32s cubic-bezier(0.22,1,0.36,1);
-}
-@keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-.modal-handle { width: 38px; height: 4px; background: var(--line2); border-radius: 99px; margin: 0 auto 22px; }
-
-.modal-close {
-  position: absolute; top: 16px; right: 20px;
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  color: var(--ink2);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.16s;
-}
-.modal-close svg { width: 15px; height: 15px; }
-.modal-close:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-
-.modal-eyebrow { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
-.modal-title { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 400; color: var(--ink); margin-bottom: 3px; }
-.modal-title .num { font-family: 'Inter', sans-serif; font-weight: 400; color: var(--ink); }
-.modal-sub { font-size: 13px; color: var(--ink2); margin-bottom: 26px; }
-
-.field { margin-bottom: 16px; }
-.field label { display: block; font-size: 12px; color: var(--ink2); margin-bottom: 8px; font-weight: 500; }
-.field input {
-  width: 100%; padding: 14px 15px;
-  background: var(--bg2);
-  border: 1.5px solid transparent;
-  border-radius: var(--r-sm);
-  color: var(--ink);
-  font-family: 'Inter', sans-serif;
-  font-size: 16px; outline: none;
-  transition: all 0.18s;
-}
-.field input::placeholder { color: var(--ink3); }
-.field input:focus { background: #fff; border-color: var(--accent); }
-
-.section-label { font-size: 12px; color: var(--ink2); margin-bottom: 10px; font-weight: 500; }
-.field input, .phone-wrap input { caret-color: var(--accent); }
-
-.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 22px; }
-.time-btn {
-  padding: 11px 4px; text-align: center;
-  font-size: 13px; font-weight: 500;
-  background: var(--bg2);
-  border: 1.5px solid transparent;
-  border-radius: var(--r-sm);
-  color: var(--ink); cursor: pointer;
-  transition: all 0.16s;
-}
-.time-btn:active { transform: scale(0.96); }
-.time-btn.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
-.time-btn.taken {
-  opacity: 0.4; cursor: not-allowed;
-  text-decoration: line-through;
-  background: var(--busy-soft); color: var(--busy);
-}
-
-.guests-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-.guests-row label { font-size: 12px; color: var(--ink2); flex: 1; font-weight: 500; }
-.g-btn {
-  width: 36px; height: 36px;
-  background: var(--bg2);
-  border: 1.5px solid var(--line);
-  border-radius: 50%; color: var(--ink);
-  font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.16s;
-}
-.g-btn:active { transform: scale(0.92); }
-.g-val { font-size: 17px; font-weight: 600; min-width: 24px; text-align: center; }
-
-.divider { height: 1px; background: var(--line); margin: 22px 0; }
-
-.phone-wrap {
-  position: relative; display: flex; align-items: center;
-  background: var(--bg2);
-  border: 1.5px solid transparent;
-  border-radius: var(--r-sm); overflow: visible;
-  transition: all 0.18s;
-}
-.phone-wrap:focus-within { background: #fff; border-color: var(--accent); }
-.phone-country {
-  display: flex; align-items: center; gap: 5px;
-  padding: 14px 11px 14px 15px;
-  cursor: pointer;
-  border-right: 1.5px solid var(--line);
-  white-space: nowrap; user-select: none; flex-shrink: 0;
-}
-#country-code { font-size: 14px; }
-.phone-arrow { width: 9px; height: 9px; color: var(--ink3); }
-.phone-wrap input[type=tel] {
-  flex: 1; padding: 14px 15px;
-  background: transparent; border: none;
-  color: var(--ink); font-size: 16px; outline: none; width: 100%;
-  font-family: 'Inter', sans-serif;
-}
-.country-menu {
-  display: none;
-  position: absolute; top: calc(100% + 8px);
-  left: 0; right: 0;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px; z-index: 200; overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.country-menu.open { display: block; }
-.country-search-wrap { padding: 11px; border-bottom: 1px solid var(--line); }
-.country-search-wrap input {
-  width: 100%; padding: 9px 12px;
-  background: var(--bg2);
-  border: 1px solid transparent;
-  border-radius: 9px; color: var(--ink); font-size: 13px; outline: none;
-  font-family: 'Inter', sans-serif;
-}
-.country-list { max-height: 210px; overflow-y: auto; }
-.country-item {
-  display: flex; align-items: center; gap: 11px;
-  padding: 11px 15px; cursor: pointer;
-  font-size: 14px; color: var(--ink);
-}
-.country-item:hover { background: var(--accent-soft); }
-.country-item .c-code { color: var(--ink2); margin-left: auto; font-size: 13px; }
-
-.btn-confirm {
-  width: 100%; padding: 17px;
-  background: var(--accent); color: #fff;
-  border: none; border-radius: 14px;
-  font-family: 'Inter', sans-serif;
-  font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: all 0.18s; margin-top: 6px;
-}
-.btn-confirm:disabled { opacity: 0.32; cursor: not-allowed; }
-.btn-confirm:active:not(:disabled) { transform: scale(0.985); background: var(--accent-dark); }
-
-/* ─────── SUCCESS ─────── */
-#successpage { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
-#successpage.open { display: flex; }
-.success-card { text-align: center; max-width: 320px; width: 100%; }
-.success-mark {
-  width: 60px; height: 60px; margin: 0 auto 26px;
-  border-radius: 50%;
-  background: var(--free-soft);
-  border: 1.5px solid var(--free-line);
-  display: flex; align-items: center; justify-content: center;
-}
-.success-mark svg { width: 26px; height: 26px; color: var(--free); }
-.success-title { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 400; color: var(--ink); margin-bottom: 10px; line-height: 1.1; }
-.success-sub { font-size: 14px; color: var(--ink2); line-height: 1.6; margin-bottom: 30px; }
-.success-card-detail {
-  background: var(--bg2);
-  border-radius: var(--r);
-  padding: 6px 18px;
-  text-align: left;
-}
-.success-detail {
-  display: flex; justify-content: space-between;
-  font-size: 14px; padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-}
-.success-detail:last-child { border-bottom: none; }
-.success-detail span:first-child { color: var(--ink2); }
-.success-detail span:last-child { font-weight: 500; }
-</style>
-</head>
-<body>
-
-<!-- LANDING -->
-<div id="landing">
-  <div class="landing-card">
-    <div class="landing-logo">
-      <div class="landing-logo-mark"></div>
-      <div class="landing-name" id="landing-name-text">Ресторан</div>
-    </div>
-    <div class="landing-tagline">Забронюйте<br>свій столик</div>
-    <button class="btn-book" onclick="showPrebooking()">Забронювати</button>
-  </div>
-</div>
-
-<!-- PREBOOKING: дата, час, гості -->
-<div id="prebooking">
-  <div class="floor-header">
-    <button class="back-btn" onclick="showLanding()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
-      Назад
-    </button>
-    <span class="floor-title">Бронювання</span>
-    <span class="spacer"></span>
-  </div>
-  <div class="pb-wrap">
-    <div class="pb-hint">На який день бронюєте столик?</div>
-    <div class="field"><label>Дата</label><input type="date" id="pb-date"></div>
-
-    <div class="pb-hint">Скільки людей планує прийти?</div>
-    <div class="guests-row">
-      <label>Кількість гостей</label>
-      <button class="g-btn" onclick="changePbGuests(-1)">−</button>
-      <span class="g-val" id="pb-g-val">2</span>
-      <button class="g-btn" onclick="changePbGuests(1)">+</button>
-    </div>
-
-    <div class="pb-hint">На котру годину вас чекати?</div>
-    <div class="section-label">Час</div>
-    <div class="time-grid" id="pb-time-grid"></div>
-    <button class="btn-confirm" id="pb-continue" onclick="goToFloor()" disabled>Продовжити</button>
-  </div>
-</div>
-
-<!-- FLOOR -->
-<div id="floorpage">
-  <div class="floor-header">
-    <button class="back-btn" onclick="showPrebooking()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
-      Назад
-    </button>
-    <span class="floor-title" id="floor-title-text">Зал</span>
-    <span class="spacer"></span>
-  </div>
-
-  <div class="tap-hint">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11.5V6a2 2 0 0 1 4 0v5.5M13 8.5a2 2 0 0 1 4 0V13M9 9.5a2 2 0 0 0-4 0v3.5a7 7 0 0 0 7 7h1a6 6 0 0 0 6-6V10a2 2 0 0 0-4 0"/></svg>
-    <span id="tap-hint-text">Торкніться вільного столика</span>
-  </div>
-
-  <div class="floor-wrap" id="floor-wrap">
-    <div class="floor-loading" id="floor-loading">Завантаження залу…</div>
-  </div>
-  <div class="legend">
-    <div class="legend-item"><span class="legend-dot" style="background:#f0f6ef;border:1.5px solid #4a8c45"></span>Вільний</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#fbeeed;border:1.5px solid #b8463a"></span>Зайнятий</div>
-  </div>
-</div>
-
-<!-- MODAL: тільки контактні дані -->
-<div id="modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <button class="modal-close" onclick="closeModal()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-    </button>
-    <div class="modal-eyebrow">Бронювання</div>
-    <div class="modal-title" id="modal-title">Стіл</div>
-    <div class="modal-sub" id="modal-sub">2 місця</div>
-    <div class="modal-summary" id="modal-summary"></div>
-    <div class="divider"></div>
-    <div class="field"><label>Ім'я</label><input type="text" id="f-name" placeholder="Як до вас звертатися" oninput="checkForm()"></div>
-    <div class="field">
-      <label>Телефон</label>
-      <div class="phone-wrap">
-        <div class="phone-country" onclick="toggleCountryMenu()">
-          <span id="country-flag">🇺🇦</span>
-          <span id="country-code">+380</span>
-          <svg class="phone-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-        </div>
-        <input type="tel" id="f-phone" placeholder="50 375 76 78" oninput="formatPhone(this); checkForm()">
-        <div class="country-menu" id="country-menu">
-          <div class="country-search-wrap"><input type="text" id="country-search" placeholder="Пошук країни" oninput="filterCountries()"></div>
-          <div class="country-list" id="country-list"></div>
-        </div>
-      </div>
-    </div>
-    <div class="field"><label>Побажання <span style="color:var(--ink3)">— необов'язково</span></label><input type="text" id="f-note" placeholder="Місце біля вікна, дитячий стілець…"></div>
-    <button class="btn-confirm" id="btn-confirm" onclick="submitBooking()" disabled>Забронювати</button>
-  </div>
-</div>
-
-<!-- SUCCESS -->
-<div id="successpage">
-  <div class="success-card">
-    <div class="success-mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    </div>
-    <div class="success-title">Готово</div>
-    <div class="success-sub">Ми надішлемо підтвердження, щойно ресторан прийме бронювання.</div>
-    <div class="success-card-detail" id="success-details"></div>
-  </div>
-</div>
-
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff'); tg.setBackgroundColor('#ffffff'); }
-const USER_ID = tg?.initDataUnsafe?.user?.id || Math.floor(Math.random()*1e9);
-
-const TIMES = ['12:00','12:30','13:00','13:30','14:00','14:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30'];
-const API_BASE = 'https://web-production-aff79.up.railway.app';
-const RESTAURANT_SLUG = new URLSearchParams(window.location.search).get('r') || 'default';
-const state = { tableId: null, tableName: '', tableSeats: 0, date: '', time: '', guests: 2, restaurantTables: [] };
-
-function changePbGuests(d) {
-  state.guests = Math.max(1, Math.min(20, (state.guests || 2) + d));
-  document.getElementById('pb-g-val').textContent = state.guests;
-}
-
-async function loadRestaurant() {
-  try {
-    const res = await fetch(`${API_BASE}/api/restaurant?r=${encodeURIComponent(RESTAURANT_SLUG)}`);
-    if (!res.ok) throw new Error('not ok');
-    const data = await res.json();
-    state.restaurantTables = data.tables || [];
-    document.getElementById('landing-name-text').textContent = data.name || 'Ресторан';
-    document.getElementById('floor-title-text').textContent = data.name || 'Зал';
-  } catch (e) {
-    document.getElementById('floor-wrap').innerHTML = '<div class="floor-loading">Не вдалося завантажити зал. Спробуйте пізніше.</div>';
-  }
-}
-
-function renderFloorPlan(tables) {
-  const barSeats = tables.filter(t => t.seats === 1);
-  const regularTables = tables.filter(t => t.seats > 1 && t.seats < 6);
-  const bigTables = tables.filter(t => t.seats >= 6);
-
-  const W = 340;
-  let y = 20;
-  let svgParts = [];
-  const barH = barSeats.length > 0 ? 70 : 0;
-
-  const regRows = Math.ceil(regularTables.length / 3);
-  const totalH = 20 + (barH ? barH + 20 : 0) + regRows * 100 + bigTables.length * 86 + 40;
-
-  svgParts.push(`<rect x="8" y="8" width="${W-16}" height="${totalH-8}" rx="16" fill="#ffffff" stroke="#ece9e4" stroke-width="1.5"/>`);
-
-  const windowH = 44;
-  const windowCount = Math.max(2, Math.floor((totalH - 60) / 110));
-  const windowGap = (totalH - 60) / windowCount;
-  for (let i = 0; i < windowCount; i++) {
-    const wy = 40 + i * windowGap;
-    const cy = wy + windowH / 2;
-    svgParts.push(`<rect x="1" y="${wy}" width="13" height="${windowH}" rx="4" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
-    svgParts.push(`<text x="7.5" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="7" font-weight="700" fill="#4a7a99" font-family="Inter" letter-spacing="0.1em" transform="rotate(-90 7.5 ${cy})">ВІКНО</text>`);
-    svgParts.push(`<rect x="${W-14}" y="${wy}" width="13" height="${windowH}" rx="4" fill="#cfe3f0" stroke="#a8cbe0" stroke-width="1"/>`);
-    svgParts.push(`<text x="${W-7.5}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="7" font-weight="700" fill="#4a7a99" font-family="Inter" letter-spacing="0.1em" transform="rotate(90 ${W-7.5} ${cy})">ВІКНО</text>`);
-  }
-
-  svgParts.push(`<rect x="${W/2-46}" y="${totalH-16}" width="92" height="13" rx="6.5" fill="#e07020"/>`);
-  svgParts.push(`<text x="${W/2}" y="${totalH-6.5}" text-anchor="middle" font-size="9" font-weight="600" fill="#ffffff" letter-spacing="0.14em" font-family="Inter">ВХІД</text>`);
-
-  // BAR
-  if (barSeats.length > 0) {
-    svgParts.push(`<rect x="20" y="${y}" width="${W-40}" height="70" rx="12" fill="#f7f6f4" stroke="#ece9e4" stroke-width="1"/>`);
-    svgParts.push(`<text x="88" y="${y+30}" text-anchor="middle" font-size="9" fill="#a39d94" letter-spacing="0.2em" font-family="Inter" font-weight="500">БАР</text>`);
-    const startX = 138;
-    barSeats.slice(0, 6).forEach((seat, i) => {
-      const cx = startX + i * 28;
-      const cy = y + 35;
-      svgParts.push(`
-        <g class="seat" data-id="${esc(seat.id)}" data-name="${esc(seat.name)}" data-seats="1" onclick="onTableClick(this)">
-          <circle cx="${cx}" cy="${cy}" r="11" class="seat-c"/>
-          <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="10" class="seat-n" font-family="Inter">${i+1}</text>
-        </g>`);
-    });
-    y += barH + 20;
-  }
-
-  // Звичайні столи — сітка 3 в ряд
-  regularTables.forEach((t, i) => {
-    const col = i % 3;
-    const row = Math.floor(i / 3);
-    const x = 22 + col * 115;
-    const ty = y + row * 100;
-    const cx = x + 33;
-    const label = String(t.name).replace(/^Стіл\s*/i, '');
-    svgParts.push(`
-      <g class="tbl" data-id="${esc(t.id)}" data-name="${esc(t.name)}" data-seats="${t.seats}" onclick="onTableClick(this)">
-        <rect x="${x}" y="${ty}" width="66" height="66" rx="13" class="tbl-rect"/>
-        <text x="${cx}" y="${ty+28}" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter">${esc(label)}</text>
-        <text x="${cx}" y="${ty+41}" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="${cx}" y="${ty+52}" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">${t.seats} ${seatWord(t.seats)}</text>
-      </g>`);
-  });
-  y += regRows * 100;
-
-  // Великі столи (VIP тощо) — на всю ширину
-  bigTables.forEach((t) => {
-    svgParts.push(`
-      <g class="tbl" data-id="${esc(t.id)}" data-name="${esc(t.name)}" data-seats="${t.seats}" onclick="onTableClick(this)">
-        <rect x="22" y="${y}" width="${W-44}" height="66" rx="13" class="tbl-rect"/>
-        <text x="${W/2}" y="${y+28}" text-anchor="middle" font-size="14" class="tbl-num" font-family="Inter" letter-spacing="0.03em">${esc(t.name)}</text>
-        <text x="${W/2}" y="${y+41}" text-anchor="middle" font-size="7.5" class="tbl-action" font-family="Inter">Вільний</text>
-        <text x="${W/2}" y="${y+52}" text-anchor="middle" font-size="7" class="tbl-seats" font-family="Inter">${t.seats} ${seatWord(t.seats)}</text>
-      </g>`);
-    y += 86;
-  });
-
-  const svg = `<svg class="floor-svg" viewBox="0 0 ${W} ${totalH}" xmlns="http://www.w3.org/2000/svg">${svgParts.join('')}</svg>`;
-  document.getElementById('floor-wrap').innerHTML = svg;
-}
-
-function esc(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-const COUNTRIES = [
-  { name: 'Україна', flag: '🇺🇦', code: '+380' },
-  { name: 'Польща', flag: '🇵🇱', code: '+48' },
-  { name: 'Німеччина', flag: '🇩🇪', code: '+49' },
-  { name: 'США', flag: '🇺🇸', code: '+1' },
-  { name: 'Велика Британія', flag: '🇬🇧', code: '+44' },
-  { name: 'Франція', flag: '🇫🇷', code: '+33' },
-  { name: 'Італія', flag: '🇮🇹', code: '+39' },
-  { name: 'Іспанія', flag: '🇪🇸', code: '+34' },
-  { name: 'Чехія', flag: '🇨🇿', code: '+420' },
-  { name: 'Австрія', flag: '🇦🇹', code: '+43' },
-  { name: 'Румунія', flag: '🇷🇴', code: '+40' },
-  { name: 'Угорщина', flag: '🇭🇺', code: '+36' },
-  { name: 'Молдова', flag: '🇲🇩', code: '+373' },
-  { name: 'Туреччина', flag: '🇹🇷', code: '+90' },
-  { name: 'ОАЕ', flag: '🇦🇪', code: '+971' },
-  { name: 'Ізраїль', flag: '🇮🇱', code: '+972' },
-  { name: 'Австралія', flag: '🇦🇺', code: '+61' },
-  { name: 'Нідерланди', flag: '🇳🇱', code: '+31' },
-];
-let selectedCountry = COUNTRIES[0];
-
-function renderCountries(list) {
-  document.getElementById('country-list').innerHTML = list.map(c => `
-    <div class="country-item" onclick="selectCountryItem(${COUNTRIES.indexOf(c)})">
-      <span>${c.flag}</span><span>${c.name}</span><span class="c-code">${c.code}</span>
-    </div>`).join('');
-}
-function filterCountries() {
-  const q = document.getElementById('country-search').value.toLowerCase();
-  renderCountries(COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.includes(q)));
-}
-function toggleCountryMenu() {
-  const menu = document.getElementById('country-menu');
-  menu.classList.toggle('open');
-  if (menu.classList.contains('open')) {
-    renderCountries(COUNTRIES);
-    document.getElementById('country-search').value = '';
-    setTimeout(() => document.getElementById('country-search').focus(), 50);
-  }
-}
-function selectCountryItem(idx) {
-  selectedCountry = COUNTRIES[idx];
-  document.getElementById('country-flag').textContent = selectedCountry.flag;
-  document.getElementById('country-code').textContent = selectedCountry.code;
-  document.getElementById('country-menu').classList.remove('open');
-  document.getElementById('f-phone').focus();
-  checkForm();
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.phone-wrap')) {
-    const m = document.getElementById('country-menu');
-    if (m) m.classList.remove('open');
-  }
-});
-
-function formatPhone(input) {
-  let v = input.value.replace(/\D/g, '');
-  if (v.startsWith('0')) v = v.slice(1);
-  if (v.length > 9) v = v.slice(0, 9);
-  let f = '';
-  if (v.length > 0) f = v.slice(0, 2);
-  if (v.length > 2) f += ' ' + v.slice(2, 5);
-  if (v.length > 5) f += ' ' + v.slice(5, 7);
-  if (v.length > 7) f += ' ' + v.slice(7, 9);
-  input.value = f;
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.remove('open');
-  releaseCurrentHold();
-}
-
-function seatWord(n) {
-  const mod10 = n % 10, mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'місце';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'місця';
-  return 'місць';
-}
-
-document.querySelectorAll('.modal-sheet input').forEach(inp => {
-  inp.addEventListener('focus', () => {
-    setTimeout(() => scrollFieldIntoModal(inp), 320);
-  });
-});
-
-function scrollFieldIntoModal(el) {
-  const container = document.querySelector('.modal-sheet');
-  if (!container) return;
-  const rect = el.getBoundingClientRect();
-  const containerRect = container.getBoundingClientRect();
-  const offsetInContainer = rect.top - containerRect.top + container.scrollTop;
-  const targetTop = offsetInContainer - 90;
-  container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
-}
-
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', () => {
-    const a = document.activeElement;
-    if (a && a.tagName === 'INPUT' && a.closest('.modal-sheet')) {
-      setTimeout(() => scrollFieldIntoModal(a), 80);
-    }
-  });
-}
-
-async function loadTableStatuses(date, time) {
-  try {
-    const res = await fetch(`${API_BASE}/api/tables?date=${date}&time=${encodeURIComponent(time)}&r=${encodeURIComponent(RESTAURANT_SLUG)}&uid=${USER_ID}`);
-    if (!res.ok) { applyPulse(); return; }
-    const data = await res.json();
-    const booked = data.booked_tables || [];
-    document.querySelectorAll('.tbl').forEach(g => {
-      const name = g.dataset.name;
-      if (booked.includes(name)) {
-        g.classList.add('booked');
-        g.querySelector('.tbl-action').textContent = 'Зайнятий';
-      } else {
-        g.classList.remove('booked');
-        g.querySelector('.tbl-action').textContent = 'Вільний';
-      }
-    });
-    document.querySelectorAll('.seat').forEach(g => {
-      const name = g.dataset.name;
-      if (booked.includes(name)) g.classList.add('booked');
-      else g.classList.remove('booked');
-    });
-    applyPulse();
-  } catch(e) { applyPulse(); }
-}
-
-function applyPulse() {
-  document.querySelectorAll('.tbl').forEach(t => t.classList.remove('pulse'));
-  const firstFree = document.querySelector('.tbl:not(.booked)');
-  if (firstFree) {
-    firstFree.classList.add('pulse');
-    setTimeout(() => firstFree.classList.remove('pulse'), 5200);
-  }
-}
-
-/* ── ЕКРАН 1: дата / час / гості ── */
-function releaseCurrentHold() {
-  // Знімає активний хол, якщо він є (при виході з екрану бронювання)
-  if (state.tableName && state.date && state.time) {
-    fetch(`${API_BASE}/api/hold`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'release', r: RESTAURANT_SLUG, tableName: state.tableName, date: state.date, time: state.time, uid: USER_ID })
-    }).catch(()=>{});
-    state.tableName = '';
-    state.tableId = null;
-  }
-}
-
-function showPrebooking() {
-  // Якщо повертаємось із плану залу — знімаємо хол
-  releaseCurrentHold();
-  document.getElementById('landing').style.display = 'none';
-  document.getElementById('floorpage').style.display = 'none';
-  document.getElementById('prebooking').style.display = 'block';
-
-  const today = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-  const di = document.getElementById('pb-date');
-  di.min = todayStr;
-  if (!state.date) { di.value = todayStr; state.date = todayStr; }
-  document.getElementById('pb-g-val').textContent = state.guests;
-
-  buildPbTimes();
-  checkPbForm();
-}
-
-document.getElementById('pb-date').addEventListener('change', e => {
-  releaseCurrentHold();
-  state.date = e.target.value;
-  checkPbForm();
-});
-
-function buildPbTimes() {
-  const grid = document.getElementById('pb-time-grid');
-  grid.innerHTML = '';
-  TIMES.forEach(t => {
-    const b = document.createElement('button');
-    b.className = 'time-btn' + (t === state.time ? ' sel' : '');
-    b.textContent = t;
-    b.onclick = () => selectPbTime(t, b);
-    grid.appendChild(b);
-  });
-}
-
-function selectPbTime(t, el) {
-  releaseCurrentHold();
-  document.querySelectorAll('#pb-time-grid .time-btn').forEach(b => b.classList.remove('sel'));
-  el.classList.add('sel');
-  state.time = t;
-  checkPbForm();
-}
-
-function checkPbForm() {
-  const ok = state.date && state.time;
-  document.getElementById('pb-continue').disabled = !ok;
-}
-
-function showLanding() {
-  document.getElementById('floorpage').style.display = 'none';
-  document.getElementById('prebooking').style.display = 'none';
-  document.getElementById('landing').style.display = 'flex';
-}
-
-/* ── ЕКРАН 2: план залу ── */
-function goToFloor() {
-  document.getElementById('prebooking').style.display = 'none';
-  document.getElementById('floorpage').style.display = 'block';
-  renderFloorPlan(state.restaurantTables);
-  loadTableStatuses(state.date, state.time);
-  const d = new Date(state.date + 'T00:00:00');
-  const dateStr = isNaN(d) ? state.date : d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
-  document.getElementById('tap-hint-text').textContent =
-    `Оберіть вільний столик на ${dateStr}, ${state.time}`;
-}
-
-async function onTableClick(el) {
-  if (el.classList.contains('booked')) return;
-  const seats = parseInt(el.dataset.seats);
-  if (state.guests > seats) {
-    alert(`Цей стіл розрахований на ${seats} ${seatWord(seats)}, а гостей — ${state.guests}. Оберіть інший стіл.`);
-    return;
-  }
-  const tableName = el.dataset.name;
-
-  // Спроба поставити тимчасовий хол (3 хв) — щоб інші не встигли забронювати
-  try {
-    const res = await fetch(`${API_BASE}/api/hold`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'create', r: RESTAURANT_SLUG, tableName, date: state.date, time: state.time, uid: USER_ID })
-    });
-    const hd = await res.json();
-    if (!hd.ok) {
-      alert('Цей столик щойно обрав інший гість. Оберіть, будь ласка, інший.');
-      loadTableStatuses(state.date, state.time);
-      return;
-    }
-  } catch(e) { /* якщо мережа впала — продовжуємо, фінальна перевірка все одно на бекенді */ }
-
-  state.tableId = el.dataset.id;
-  state.tableName = tableName;
-  state.tableSeats = seats;
-
-  document.getElementById('modal-title').innerHTML = esc(state.tableName).replace(/(\d+)/g, '<span class="num">$1</span>');
-  document.getElementById('modal-sub').textContent = state.tableSeats + ' ' + seatWord(state.tableSeats);
-
-  const d = new Date(state.date + 'T00:00:00');
-  const dateStr = isNaN(d) ? state.date : d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
-  document.getElementById('modal-summary').innerHTML =
-    `<span>📅 <b>${dateStr}</b></span><span>🕐 <b>${state.time}</b></span><span>👥 <b>${state.guests}</b></span>`;
-
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-phone').value = '';
-  document.getElementById('f-note').value = '';
-  document.getElementById('btn-confirm').disabled = true;
-  document.getElementById('modal').classList.add('open');
-  document.querySelector('.modal-sheet').scrollTop = 0;
-}
-
-function changeGuests(d) {
-  // лишено для сумісності, більше не використовується в UI
-}
-
-function checkForm() {
-  const ok = document.getElementById('f-name').value.trim() &&
-    document.getElementById('f-phone').value.trim();
-  document.getElementById('btn-confirm').disabled = !ok;
-}
-
-function submitBooking() {
-  const name = document.getElementById('f-name').value.trim();
-  const phone = selectedCountry.code + ' ' + document.getElementById('f-phone').value.trim();
-  const note = document.getElementById('f-note').value.trim();
-  const data = { restaurantSlug: RESTAURANT_SLUG, tableId: state.tableId, tableName: state.tableName, tableSeats: state.tableSeats, date: state.date, time: state.time, guests: state.guests, name, phone, note };
-  if (tg) tg.sendData(JSON.stringify(data));
-  showSuccess(data);
-}
-
-function showSuccess(data) {
-  document.getElementById('modal').classList.remove('open');
-  document.getElementById('floorpage').style.display = 'none';
-  document.getElementById('prebooking').style.display = 'none';
-  document.getElementById('landing').style.display = 'none';
-  const dateStr = new Date(data.date).toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
-  document.getElementById('success-details').innerHTML = `
-    <div class="success-detail"><span>Столик</span><span>${esc(data.tableName)}</span></div>
-    <div class="success-detail"><span>Дата</span><span>${esc(dateStr)}</span></div>
-    <div class="success-detail"><span>Час</span><span>${esc(data.time)}</span></div>
-    <div class="success-detail"><span>Гостей</span><span>${esc(String(data.guests))}</span></div>
-    <div class="success-detail"><span>Ім'я</span><span>${esc(data.name)}</span></div>
-    <div class="success-detail"><span>Телефон</span><span>${esc(data.phone)}</span></div>
-  `;
-  document.getElementById('successpage').classList.add('open');
-}
-
-loadRestaurant();
-</script>
-</body>
-</html>
+import os, random, sqlite3, asyncio
+from datetime import date, timedelta
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+
+DB_PATH = os.getenv("DB_PATH", "cows.db")
+db = sqlite3.connect(DB_PATH)
+db.execute("""CREATE TABLE IF NOT EXISTS cows(
+    chat_id INTEGER, user_id INTEGER, name TEXT,
+    weight INTEGER DEFAULT 0, last_grow TEXT,
+    PRIMARY KEY(chat_id, user_id))""")
+db.execute("""CREATE TABLE IF NOT EXISTS hall_of_fame(
+    chat_id INTEGER, name TEXT, weight INTEGER, ended_at TEXT)""")
+for col, coltype in [
+    ("streak", "INTEGER DEFAULT 0"), ("last_steal", "TEXT"), ("last_duel", "TEXT"),
+    ("coins", "INTEGER DEFAULT 0"), ("badges", "TEXT DEFAULT ''"), ("last_decay", "TEXT")
+]:
+    try:
+        db.execute(f"ALTER TABLE cows ADD COLUMN {col} {coltype}")
+    except sqlite3.OperationalError:
+        pass
+db.commit()
+
+bot = Bot(os.getenv("BOT_TOKEN"))
+dp = Dispatcher()
+
+WEIGHT_BADGES = [
+    (10, "🥉 Перші кроки"), (50, "🥈 Міцна корова"), (100, "🥇 Центнер"),
+    (250, "💎 Товстунка"), (500, "👑 Легенда ферми"), (1000, "🌟 Тонна слави"),
+]
+STREAK_BADGES = [
+    (7, "🔥 Тиждень поспіль"), (30, "⚡ Місяць без пропусків"), (100, "🏅 Залізна дисципліна"),
+]
+
+def get_cow(chat_id, user_id):
+    return db.execute(
+        "SELECT name, weight, last_grow, streak, last_steal, last_duel, coins, badges, last_decay "
+        "FROM cows WHERE chat_id=? AND user_id=?", (chat_id, user_id)).fetchone()
+
+def apply_decay(chat_id, user_id):
+    row = get_cow(chat_id, user_id)
+    if not row or not row[2]:
+        return row
+    today = date.today()
+    last_grow_date = date.fromisoformat(row[2])
+    days_since_grow = (today - last_grow_date).days
+    if days_since_grow <= 3:
+        return row
+    last_decay_date = date.fromisoformat(row[8]) if row[8] else last_grow_date
+    days_since_decay = (today - last_decay_date).days
+    if days_since_decay >= 1:
+        loss = int(row[1] * 0.05 * days_since_decay)
+        new_weight = max(0, row[1] - loss)
+        db.execute("UPDATE cows SET weight=?, last_decay=? WHERE chat_id=? AND user_id=?",
+                   (new_weight, today.isoformat(), chat_id, user_id))
+        db.commit()
+        return get_cow(chat_id, user_id)
+    return row
+
+async def check_badges(m, chat_id, user_id, weight, streak):
+    row = get_cow(chat_id, user_id)
+    have = set(row[7].split(",")) if row[7] else set()
+    new_badges = []
+    for threshold, badge in WEIGHT_BADGES:
+        if weight >= threshold and badge not in have:
+            have.add(badge)
+            new_badges.append(badge)
+    for threshold, badge in STREAK_BADGES:
+        if streak >= threshold and badge not in have:
+            have.add(badge)
+            new_badges.append(badge)
+    if new_badges:
+        db.execute("UPDATE cows SET badges=? WHERE chat_id=? AND user_id=?",
+                   (",".join(have), chat_id, user_id))
+        db.commit()
+        await m.answer(f"🎖 Нові бейджі: {', '.join(new_badges)}!")
+
+@dp.message(lambda m: m.new_chat_members is not None)
+async def on_added(m: types.Message):
+    me = await bot.get_me()
+    for member in m.new_chat_members:
+        if member.id == me.id:
+            await m.reply(
+                "🐄 Хей! Я новий бот-ферма в цьому чаті!\n\n"
+                "Кожен тут може ростити свою корову:\n"
+                "/growcow — погодувати корову (раз на день)\n"
+                "/mycow — моя корова\n"
+                "/namecow Ім'я — назвати корову\n"
+                "/steal — вкрасти кг у суперника\n"
+                "/duel — дуель корів (у відповідь)\n"
+                "/sell, /buy, /balance — ринок\n"
+                "/badges — мої бейджі\n"
+                "/top, /global — топи\n"
+                "/newseason, /legends — сезони (для адмінів)\n\n"
+                "Не годуй корову понад 3 дні — почне худнути! 🏆"
+            )
+            return
+
+@dp.message(Command("growcow"))
+async def grow(m: types.Message):
+    today = date.today()
+    apply_decay(m.chat.id, m.from_user.id)
+    row = get_cow(m.chat.id, m.from_user.id)
+    if row and row[2] == today.isoformat():
+        await m.reply("🐄 Твоя корова вже їла сьогодні! Приходь завтра.")
+        return
+
+    streak = 1
+    if row and row[2] == (today - timedelta(days=1)).isoformat():
+        streak = (row[3] or 0) + 1
+
+    gain = random.randint(1, 20) + min(streak - 1, 10)
+
+    if row:
+        weight = row[1] + gain
+        db.execute("UPDATE cows SET weight=?, last_grow=?, streak=? WHERE chat_id=? AND user_id=?",
+                   (weight, today.isoformat(), streak, m.chat.id, m.from_user.id))
+    else:
+        weight = gain
+        db.execute("INSERT INTO cows(chat_id,user_id,name,weight,last_grow,streak) VALUES(?,?,?,?,?,?)",
+                   (m.chat.id, m.from_user.id, m.from_user.first_name, weight, today.isoformat(), streak))
+    db.commit()
+
+    bonus_text = f" (+{min(streak-1,10)} кг за серію {streak} дн.)" if streak > 1 else ""
+    await m.reply(f"🐄 Корова гравця {m.from_user.first_name} наїла +{gain} кг{bonus_text}! Тепер важить {weight} кг.")
+    await check_badges(m, m.chat.id, m.from_user.id, weight, streak)
+
+@dp.message(Command("mycow"))
+async def mycow(m: types.Message):
+    apply_decay(m.chat.id, m.from_user.id)
+    row = get_cow(m.chat.id, m.from_user.id)
+    if row:
+        name = row[0] or m.from_user.first_name
+        await m.reply(f"🐄 {name} важить {row[1]} кг, серія: {row[3] or 0} дн., монет: {row[6] or 0}")
+    else:
+        await m.reply("У тебе ще нема корови. Напиши /growcow 🐄")
+
+@dp.message(Command("namecow"))
+async def namecow(m: types.Message):
+    row = get_cow(m.chat.id, m.from_user.id)
+    if not row:
+        await m.reply("Спочатку заведи корову: /growcow 🐄")
+        return
+    parts = m.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await m.reply("Напиши так: /namecow Зірочка")
+        return
+    new_name = parts[1].strip()[:30]
+    db.execute("UPDATE cows SET name=? WHERE chat_id=? AND user_id=?",
+               (new_name, m.chat.id, m.from_user.id))
+    db.commit()
+    await m.reply(f"🐄 Тепер твою корову звати {new_name}!")
+
+@dp.message(Command("badges"))
+async def badges(m: types.Message):
+    row = get_cow(m.chat.id, m.from_user.id)
+    if not row or not row[7]:
+        await m.reply("Ще нема бейджів. Годуй корову і рости вагу! 🐄")
+        return
+    await m.reply("🎖 Твої бейджі:\n" + "\n".join(row[7].split(",")))
+
+@dp.message(Command("balance"))
+async def balance(m: types.Message):
+    row = get_cow(m.chat.id, m.from_user.id)
+    coins = row[6] if row else 0
+    await m.reply(f"💰 У тебе {coins or 0} монет")
+
+@dp.message(Command("sell"))
+async def sell(m: types.Message):
+    row = get_cow(m.chat.id, m.from_user.id)
+    if not row:
+        await m.reply("Спочатку заведи корову: /growcow 🐄")
+        return
+    parts = m.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip().isdigit():
+        await m.reply("Напиши так: /sell 20 (кг)")
+        return
+    kg = int(parts[1].strip())
+    if kg <= 0 or kg > row[1]:
+        await m.reply(f"У тебе тільки {row[1]} кг 🐄")
+        return
+    coins_gain = kg * 2
+    db.execute("UPDATE cows SET weight=weight-?, coins=coins+? WHERE chat_id=? AND user_id=?",
+               (kg, coins_gain, m.chat.id, m.from_user.id))
+    db.commit()
+    await m.reply(f"💰 Продав {kg} кг за {coins_gain} монет!")
+
+@dp.message(Command("buy"))
+async def buy(m: types.Message):
+    row = get_cow(m.chat.id, m.from_user.id)
+    if not row:
+        await m.reply("Спочатку заведи корову: /growcow 🐄")
+        return
+    cost, gain = 20, 15
+    if (row[6] or 0) < cost:
+        await m.reply(f"💸 Треба {cost} монет, у тебе {row[6] or 0}. Продай кг: /sell")
+        return
+    db.execute("UPDATE cows SET weight=weight+?, coins=coins-? WHERE chat_id=? AND user_id=?",
+               (gain, cost, m.chat.id, m.from_user.id))
+    db.commit()
+    await m.reply(f"🌾 Купив їжі за {cost} монет, корова +{gain} кг!")
+
+@dp.message(Command("top"))
+async def top(m: types.Message):
+    rows = db.execute(
+        "SELECT name, weight FROM cows WHERE chat_id=? ORDER BY weight DESC LIMIT 10",
+        (m.chat.id,)).fetchall()
+    if not rows:
+        await m.reply("Ферма пуста 🌾")
+        return
+    text = "🏆 Топ корів чату:\n" + "\n".join(
+        f"{i+1}. {name} — {w} кг" for i, (name, w) in enumerate(rows))
+    await m.reply(text)
+
+@dp.message(Command("global"))
+async def global_top(m: types.Message):
+    rows = db.execute(
+        "SELECT name, MAX(weight) as w FROM cows GROUP BY user_id ORDER BY w DESC LIMIT 10").fetchall()
+    if not rows:
+        await m.reply("Світова ферма ще пуста 🌍")
+        return
+    text = "🌍 Топ корів світу:\n" + "\n".join(
+        f"{i+1}. {name} — {w} кг" for i, (name, w) in enumerate(rows))
+    await m.reply(text)
+
+@dp.message(Command("steal"))
+async def steal(m: types.Message):
+    today = date.today().isoformat()
+    row = get_cow(m.chat.id, m.from_user.id)
+    if not row:
+        await m.reply("Спочатку заведи корову: /growcow 🐄")
+        return
+    if row[4] == today:
+        await m.reply("🕵️ Ти вже крав сьогодні! Завтра спробуй знову.")
+        return
+
+    victims = db.execute(
+        "SELECT user_id, name, weight FROM cows WHERE chat_id=? AND user_id!=? AND weight>0",
+        (m.chat.id, m.from_user.id)).fetchall()
+    if not victims:
+        await m.reply("Нема в кого красти 🐄")
+        return
+
+    victim_id, victim_name, victim_weight = random.choice(victims)
+    db.execute("UPDATE cows SET last_steal=? WHERE chat_id=? AND user_id=?",
+               (today, m.chat.id, m.from_user.id))
+
+    if random.random() < 0.5:
+        amount = max(1, int(victim_weight * random.uniform(0.05, 0.15)))
+        db.execute("UPDATE cows SET weight=weight-? WHERE chat_id=? AND user_id=?",
+                   (amount, m.chat.id, victim_id))
+        db.execute("UPDATE cows SET weight=weight+? WHERE chat_id=? AND user_id=?",
+                   (amount, m.chat.id, m.from_user.id))
+        db.commit()
+        await m.reply(f"🥷 Вдалося! Ти вкрав {amount} кг у {victim_name}.")
+    else:
+        penalty = max(1, int(row[1] * 0.1))
+        db.execute("UPDATE cows SET weight=MAX(weight-?,0) WHERE chat_id=? AND user_id=?",
+                   (penalty, m.chat.id, m.from_user.id))
+        db.commit()
+        await m.reply(f"🚨 Тебе спіймали! Втратив {penalty} кг.")
+
+@dp.message(Command("duel"))
+async def duel(m: types.Message):
+    if not m.reply_to_message or not m.reply_to_message.from_user:
+        await m.reply("Дай /duel у відповідь на повідомлення суперника 🤺")
+        return
+    opponent = m.reply_to_message.from_user
+    if opponent.is_bot:
+        await m.reply("Дай /duel у відповідь на повідомлення живого суперника, не бота 🤺")
+        return
+    if opponent.id == m.from_user.id:
+        await m.reply("Не можна дуелювати самого себе 😅")
+        return
+
+    row1 = get_cow(m.chat.id, m.from_user.id)
+    row2 = get_cow(m.chat.id, opponent.id)
+    if not row1 or not row2:
+        await m.reply("У обох має бути корова: /growcow 🐄")
+        return
+
+    today = date.today().isoformat()
+    if row1[5] == today:
+        await m.reply("🕒 Ти вже дуелював сьогодні!")
+        return
+
+    w1, w2 = row1[1], row2[1]
+    win1 = random.random() < (w1 / (w1 + w2))
+
+    winner_id, loser_id = (m.from_user.id, opponent.id) if win1 else (opponent.id, m.from_user.id)
+    loser_weight = w2 if win1 else w1
+    amount = max(1, int(loser_weight * 0.1))
+
+    db.execute("UPDATE cows SET weight=weight+? WHERE chat_id=? AND user_id=?",
+               (amount, m.chat.id, winner_id))
+    db.execute("UPDATE cows SET weight=MAX(weight-?,0) WHERE chat_id=? AND user_id=?",
+               (amount, m.chat.id, loser_id))
+    db.execute("UPDATE cows SET last_duel=? WHERE chat_id=? AND user_id=?",
+               (today, m.chat.id, m.from_user.id))
+    db.commit()
+
+    winner_name = m.from_user.first_name if win1 else opponent.first_name
+    loser_name = opponent.first_name if win1 else m.from_user.first_name
+    await m.reply(f"🤺 Дуель! {winner_name} переміг {loser_name} і забрав {amount} кг!")
+
+@dp.message(Command("newseason"))
+async def newseason(m: types.Message):
+    member = await bot.get_chat_member(m.chat.id, m.from_user.id)
+    if member.status not in ("creator", "administrator"):
+        await m.reply("🔒 Тільки адмін чату може закрити сезон.")
+        return
+
+    champ = db.execute(
+        "SELECT name, weight FROM cows WHERE chat_id=? ORDER BY weight DESC LIMIT 1",
+        (m.chat.id,)).fetchone()
+    if not champ or champ[1] == 0:
+        await m.reply("Ферма пуста, нема кого коронувати 🌾")
+        return
+
+    db.execute("INSERT INTO hall_of_fame(chat_id, name, weight, ended_at) VALUES(?,?,?,?)",
+               (m.chat.id, champ[0], champ[1], date.today().isoformat()))
+    db.execute("UPDATE cows SET weight=0, streak=0, badges='' WHERE chat_id=?", (m.chat.id,))
+    db.commit()
+    await m.reply(f"🎉 Сезон завершено! Чемпіон: {champ[0]} з {champ[1]} кг!\nВсі ваги обнулено, новий сезон почався 🐄")
+
+@dp.message(Command("legends"))
+async def legends(m: types.Message):
+    rows = db.execute(
+        "SELECT name, weight, ended_at FROM hall_of_fame WHERE chat_id=? ORDER BY ended_at DESC LIMIT 10",
+        (m.chat.id,)).fetchall()
+    if not rows:
+        await m.reply("Зал слави ще пустий. Заверши перший сезон: /newseason 🏆")
+        return
+    text = "👑 Зал слави:\n" + "\n".join(
+        f"{d} — {name} ({w} кг)" for name, w, d in rows)
+    await m.reply(text)
+
+async def main():
+    await bot.set_my_commands([
+        types.BotCommand(command="growcow", description="🐄 Погодувати корову"),
+        types.BotCommand(command="mycow", description="📋 Моя корова"),
+        types.BotCommand(command="namecow", description="✏️ Назвати корову"),
+        types.BotCommand(command="steal", description="🥷 Вкрасти кг у суперника"),
+        types.BotCommand(command="duel", description="🤺 Дуель корів (у відповідь)"),
+        types.BotCommand(command="sell", description="💰 Продати кг"),
+        types.BotCommand(command="buy", description="🌾 Купити їжу"),
+        types.BotCommand(command="balance", description="💰 Мій баланс"),
+        types.BotCommand(command="badges", description="🎖 Мої бейджі"),
+        types.BotCommand(command="top", description="🏆 Топ чату"),
+        types.BotCommand(command="global", description="🌍 Топ світу"),
+        types.BotCommand(command="newseason", description="🎉 Закрити сезон (адмін)"),
+        types.BotCommand(command="legends", description="👑 Зал слави"),
+    ])
+    await dp.start_polling(bot)
+
+asyncio.run(main())
